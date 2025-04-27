@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import {
   Navbar,
@@ -35,7 +36,7 @@ export const menuItems = [
 ];
 
 export default function NavBar() {
-  const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const router = useRouter();
   const pathname = usePathname();
@@ -129,7 +130,9 @@ export default function NavBar() {
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden lg:flex">
-          <Link href="/Login">Login</Link>
+          <Button as={Link} color="primary" href="/Login" variant="light">
+            Login
+          </Button>
         </NavbarItem>
         <NavbarItem>
           <Button as={Link} color="primary" href="/Signup" variant="solid">
