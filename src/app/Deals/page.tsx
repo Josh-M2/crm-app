@@ -3,86 +3,84 @@
 import React, { useState } from "react";
 import {
   Button,
-  Link,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
   useDisclosure,
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  getKeyValue,
 } from "@heroui/react";
-import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar";
 
-// Dummy lead data
-const leadsData = [
-  { id: 1, owner: "John Doe", leadName: "Lead A", assignedto: "Kathy" },
-  { id: 2, owner: "Jane Smith", leadName: "Lead B", assignedto: "Kathy" },
-  { id: 3, owner: "John Doe", leadName: "Lead C", assignedto: "Me" },
-  // ... more leads
+type Deal = {
+  id: string;
+  dealName: string;
+  amount: number;
+  status: "Pending" | "Won" | "Lost";
+  owner: string;
+};
+
+const dummyDeals: Deal[] = [
+  {
+    id: "1",
+    dealName: "Website Redesign",
+    amount: 5000,
+    status: "Pending",
+    owner: "John Doe",
+  },
+  {
+    id: "2",
+    dealName: "Mobile App Project",
+    amount: 15000,
+    status: "Won",
+    owner: "Jane Smith",
+  },
+  {
+    id: "3",
+    dealName: "SEO Optimization",
+    amount: 3000,
+    status: "Lost",
+    owner: "Alice Johnson",
+  },
 ];
 
-// Columns definition for the table
 const columns = [
-  {
-    key: "leadName",
-    label: "LEAD NAME",
-  },
-  {
-    key: "owner",
-    label: "OWNER",
-  },
-  {
-    key: "assignedto",
-    label: "Assigned To",
-  },
-  {
-    key: "actions",
-    label: "ACTIONS",
-  },
+  { key: "dealName", label: "Deal Name" },
+  { key: "amount", label: "Amount" },
+  { key: "status", label: "Status" },
+  { key: "owner", label: "Owner" },
+  { key: "actions", label: "Actions" },
 ];
 
-export default function LeadsPage() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+export default function DealsPage() {
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
-  const router = useRouter();
-  const pathname = usePathname();
-
+  const [deals, setDeals] = useState<Deal[]>(dummyDeals);
+  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const {
     isOpen: isAddOpen,
     onOpen: onAddOpen,
     onOpenChange: onAddOpenChange,
   } = useDisclosure();
 
-  // Handle opening the modal to add a new lead for a specific owner
+  const handleEdit = (deal: Deal) => {
+    setSelectedDeal(deal);
+    onOpen();
+  };
 
-  // Handle edit action for a specific lead
-  const handleEditLead = (owner: string) => {
-    // Implement the edit functionality here (e.g., navigate to edit page)
-    console.log("Editing lead with ID:", owner);
-    if (owner) {
-      router.push(`/Leads/edit-leads/?owner=${owner}`);
+  const handleDelete = (id: string) => {
+    if (confirm("Are you sure you want to delete this deal?")) {
+      setDeals((prev) => prev.filter((deal) => deal.id !== id));
     }
-  };
-
-  // Handle delete action for a specific lead
-  const handleDeleteLead = (id: number) => {
-    // Implement the delete functionality here (e.g., remove lead from list)
-    console.log("Deleting lead with ID:", id);
-  };
-
-  // Utility function to get values from each row based on the column key
-  const getKeyValue = (item: any, columnKey: string) => {
-    return item[columnKey] || "-"; // Return value of the lead property or "-" if not available
   };
 
   return (
@@ -98,26 +96,19 @@ export default function LeadsPage() {
       </motion.div>
 
       <motion.main
-        className="flex flex-col w-full p-8 container mx-auto p-6"
+        className="flex flex-col w-full p-8"
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
         <div className="ml-10">
-          <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
-
-          {/* Leads title and Add new lead button */}
-          <div className="flex justify-between mb-4">
-            <h3 className="text-xl font-bold ">
-              Leads for {selectedOwner || "All Owners"}
-            </h3>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-3xl font-bold">Deals</h2>
             <Button color="primary" onPress={onAddOpen}>
-              Add New Owner
+              Add New Deal
             </Button>
           </div>
         </div>
-
-        {/* Table to display leads */}
-        <Table>
+        <Table aria-label="Deals Table">
           <TableHeader columns={columns}>
             {(column) => (
               <TableColumn key={column.key} className="text-center">
@@ -125,19 +116,17 @@ export default function LeadsPage() {
               </TableColumn>
             )}
           </TableHeader>
-
-          <TableBody items={leadsData}>
+          <TableBody items={deals}>
             {(item) => (
               <TableRow key={item.id}>
                 {columns.map((column) => (
                   <TableCell key={column.key} className="text-center">
                     {column.key === "actions" ? (
-                      // Custom actions column for Edit and Delete buttons
                       <div className="flex gap-2 justify-center">
                         <Button
                           size="sm"
                           variant="light"
-                          onPress={() => handleEditLead(item.owner)}
+                          onPress={() => handleEdit(item)}
                         >
                           Edit
                         </Button>
@@ -145,13 +134,26 @@ export default function LeadsPage() {
                           size="sm"
                           variant="light"
                           color="danger"
-                          onPress={() => handleDeleteLead(item.id)}
+                          onPress={() => handleDelete(item.id)}
                         >
                           Delete
                         </Button>
                       </div>
+                    ) : column.key === "amount" ? (
+                      `$${item.amount}`
+                    ) : column.label === "status" ? (
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                          item.status === "Pending"
+                            ? "bg-yellow-100 text-yellow-700"
+                            : item.status === "Won"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {item.status}
+                      </span>
                     ) : (
-                      // Display the correct value for each column
                       getKeyValue(item, column.key)
                     )}
                   </TableCell>
@@ -161,6 +163,7 @@ export default function LeadsPage() {
           </TableBody>
         </Table>
       </motion.main>
+
       <button
         onClick={toggleSidebar}
         className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
@@ -170,6 +173,32 @@ export default function LeadsPage() {
         =
       </button>
 
+      {/* Edit Deal Modal */}
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Edit Deal</ModalHeader>
+              <ModalBody>
+                <p>
+                  Editing: <strong>{selectedDeal?.dealName}</strong>
+                </p>
+                {/* You can add form inputs here if you want to edit */}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" onPress={onClose}>
+                  Save Changes
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Add Deal Modal */}
       <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
         <ModalContent>
           {(onClose) => (
