@@ -3,8 +3,16 @@
 import { Button } from "@heroui/react";
 import NavBar from "@/app/components/Navbar";
 import Footer from "../components/Footer";
+import { useRouter, usePathname } from "next/navigation";
 
 export default function LoginPage() {
+  const path = usePathname();
+  const router = useRouter();
+
+  const navigate = () => {
+    router.push("/Dashboard");
+  };
+
   return (
     <>
       <NavBar />
@@ -42,7 +50,12 @@ export default function LoginPage() {
                 placeholder="••••••••"
               />
             </div>
-            <Button type="submit" color="primary" className="w-full">
+            <Button
+              type="button" //submit
+              color="primary"
+              className="w-full"
+              onPress={navigate}
+            >
               Login
             </Button>
           </form>
