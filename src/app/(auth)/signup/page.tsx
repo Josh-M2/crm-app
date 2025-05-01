@@ -13,15 +13,16 @@ import {
 } from "@/lib/validators";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { inputChange } from "@/lib/inputChange";
 
-type SignupFormTypes = {
-  name: string;
+export type SignupFormTypes = {
+  name?: string;
   email: string;
   password: string;
-  repassword: string;
+  repassword?: string;
 };
 
-type ErrorSignupFormTypes = {
+export type ErrorSignupFormTypes = {
   nameError: string | null;
   emailError: string | null;
   passwordError: string | null;
@@ -46,52 +47,19 @@ export default function SignupPage() {
   const [loading, setIsLoading] = useState<boolean>(false);
   const router = useRouter();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-
-    switch (e.target.name) {
-      case "name":
-        console.log("namenamenamename");
-        const nameError = validateName(e.target.value);
-        setError((prev) => ({ ...prev, nameError: nameError }));
-
-        break;
-      case "email":
-        const emailError = validateEmail(e.target.value);
-        setError((prev) => ({ ...prev, emailError: emailError }));
-
-        break;
-      case "password":
-        const passwordError = validatePassword(e.target.value, componentName);
-        setError((prev) => ({ ...prev, passwordError: passwordError }));
-
-        break;
-      case "repassword":
-        const repasswordError = validateRepeatPassword(
-          e.target.value,
-          form.password
-        );
-        setError((prev) => ({
-          ...prev,
-          repasswordError: repasswordError,
-        }));
-
-        break;
-      default:
-        break;
-    }
-  };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    inputChange({ e, setForm, setError, form, componentName });
 
   const handleSubmitSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     console.log("submitted: ", form);
-    const nameError = validateName(form.name);
+    const nameError = validateName(form.name as string);
     const emailError = validateEmail(form.email);
     const passwordError = validatePassword(form.password, componentName);
     const repasswordError = validateRepeatPassword(
       form.password,
-      form.repassword
+      form.repassword as string
     );
     console.log(nameError);
 

@@ -13,7 +13,7 @@ export async function protectedRoutes(req: NextRequest) {
     const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
     if (!token) {
-      url.pathname = "/Login";
+      url.pathname = "/login";
       console.log("No token found, redirecting to /login...");
       return NextResponse.redirect(url);
     }
