@@ -2,7 +2,8 @@ import { Button, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
 import Link from "next/link";
 import UserAvatar from "@/components/UserAvatar";
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { redirect, usePathname, useRouter } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 
 type SidebarTypes = {
   toggleSideBar: () => void;
@@ -13,6 +14,14 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
   const [activeSection, setActiveSection] = useState<string>("");
   const router = useRouter();
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+
+  useEffect(() => {
+    if (session && status) {
+      console.log("session: ", session);
+      console.log("status: ", status);
+    }
+  }, [session, status]);
 
   useEffect(() => {
     if (pathname) {
@@ -20,6 +29,12 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
       setActiveSection(pathname);
     }
   }, [pathname]);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
   return (
     <aside className="w-64 bg-white border-r hidden md:flex flex-col p-6 h-screen fixed">
       <div className="flex flex-row justify-between align-center items-center mb-8">
@@ -78,13 +93,19 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
         <Popover isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
           <PopoverTrigger>
             <div className="mt-auto text-black hover:bg-gray-300 p-2 cursor-pointer rounded">
-              <UserAvatar description="Team" name="John" />.
+              <UserAvatar
+                description="Member"
+                name={session?.user?.name as string}
+              />
+              .
             </div>
           </PopoverTrigger>
           <PopoverContent>
             <div className="px-1 py-2">
               <div className="text-small font-bold">
-                <Button color="danger">Logout</Button>
+                <Button color="danger" onPress={handleLogout}>
+                  Logout
+                </Button>
               </div>
             </div>
           </PopoverContent>
