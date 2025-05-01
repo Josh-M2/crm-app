@@ -20,19 +20,19 @@ export default function Footer() {
         ))}
 
         <a
-          href="/Login"
+          href="/login"
           className="text-gray-400 hover:text-white transition-colors"
         >
           Login
         </a>
         <a
-          href="/Signup"
+          href="/signup"
           className="text-gray-400 hover:text-white transition-colors"
         >
           Signup
         </a>
         <a
-          href="/Contact"
+          href="/contact"
           className="text-gray-400 hover:text-white transition-colors"
         >
           Contact Us

@@ -4,16 +4,22 @@ import React, { useState } from "react";
 import {
   Button,
   Link,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
   Table,
   TableBody,
   TableCell,
   TableColumn,
   TableHeader,
   TableRow,
+  useDisclosure,
 } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import Sidebar from "../components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 
 // Dummy lead data
 const leadsData = [
@@ -46,16 +52,18 @@ const columns = [
 export default function LeadsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpen((prev) => !prev);
+  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
+  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const router = useRouter();
   const pathname = usePathname();
 
+  const {
+    isOpen: isAddOpen,
+    onOpen: onAddOpen,
+    onOpenChange: onAddOpenChange,
+  } = useDisclosure();
+
   // Handle opening the modal to add a new lead for a specific owner
-  const handleAddLeadClick = (owner: string) => {
-    setSelectedOwner(owner);
-    setIsModalOpen(true);
-  };
 
   // Handle edit action for a specific lead
   const handleEditLead = (owner: string) => {
@@ -82,7 +90,7 @@ export default function LeadsPage() {
       <motion.div
         className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
         initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpen ? 0 : -256 }} // Slide in/out based on isOpen state
+        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
         exit={{ x: -256 }} // Same for exit animation
         transition={{ duration: 0.01 }} // Smooth transition settings
       >
@@ -91,21 +99,21 @@ export default function LeadsPage() {
 
       <motion.main
         className="flex flex-col w-full p-8 container mx-auto p-6"
-        animate={{ marginLeft: isOpen ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
+        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        <h2 className="text-3xl font-semibold mb-6 ml-10">Leads</h2>
+        <div className="ml-10">
+          <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
 
-        {/* Leads title and Add new lead button */}
-        <div className="flex justify-between mb-4">
-          <h3 className="text-xl font-bold ml-10">
-            Leads for {selectedOwner || "All Owners"}
-          </h3>
-          <Button
-            onPress={() => handleAddLeadClick(selectedOwner || "Unknown")}
-          >
-            Add New Owner
-          </Button>
+          {/* Leads title and Add new lead button */}
+          <div className="flex justify-between mb-4">
+            <h3 className="text-xl font-bold ">
+              Leads for {selectedOwner || "All Owners"}
+            </h3>
+            <Button color="primary" onPress={onAddOpen}>
+              Add New Owner
+            </Button>
+          </div>
         </div>
 
         {/* Table to display leads */}
@@ -127,15 +135,17 @@ export default function LeadsPage() {
                       // Custom actions column for Edit and Delete buttons
                       <div className="flex gap-2 justify-center">
                         <Button
-                          onPress={() => handleEditLead(item.owner)}
                           size="sm"
+                          variant="light"
+                          onPress={() => handleEditLead(item.owner)}
                         >
                           Edit
                         </Button>
                         <Button
-                          onPress={() => handleDeleteLead(item.id)}
                           size="sm"
+                          variant="light"
                           color="danger"
+                          onPress={() => handleDeleteLead(item.id)}
                         >
                           Delete
                         </Button>
@@ -150,23 +160,36 @@ export default function LeadsPage() {
             )}
           </TableBody>
         </Table>
-
-        {/* Lead Modal (Commented out) */}
-        {/* {isModalOpen && (
-        <LeadModal
-          selectedOwner={selectedOwner || "Unknown"}
-          onClose={() => setIsModalOpen(false)}
-        />
-      )} */}
       </motion.main>
       <button
         onClick={toggleSidebar}
         className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpen ? "hidden" : ""
+          isOpenSideBar ? "hidden" : ""
         }`}
       >
         =
       </button>
+
+      <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>Add New Deal</ModalHeader>
+              <ModalBody>
+                <p>Here will be the form to create a new deal.</p>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button color="primary" onPress={onClose}>
+                  Add Deal
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   );
 }

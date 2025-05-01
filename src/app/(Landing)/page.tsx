@@ -1,13 +1,13 @@
 "use client";
 
-import FeatureSection from "@/app/components/landing/FeaturesSection";
-import HomeSection from "@/app/components/landing/Home";
-import PricingSection from "@/app/components/landing/PricingSection";
-import TestimonilaScetion from "@/app/components/landing/TestimonialSection";
-import CTASection from "@/app/components/landing/CTASection";
-import FooterSection from "@/app/components/Footer";
-import NavBar from "@/app/components/Navbar";
-import IntegrationSection from "@/app/components/landing/IntegrationsSection";
+import FeatureSection from "@/components/landing/FeaturesSection";
+import HomeSection from "@/components/landing/Home";
+import PricingSection from "@/components/landing/PricingSection";
+import TestimonilaScetion from "@/components/landing/TestimonialSection";
+import CTASection from "@/components/landing/CTASection";
+import FooterSection from "@/components/Footer";
+import NavBar from "@/components/Navbar";
+import IntegrationSection from "@/components/landing/IntegrationsSection";
 
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";

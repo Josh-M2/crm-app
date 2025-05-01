@@ -9,7 +9,7 @@ export default function CTASection() {
       <p className="text-lg mb-6">
         Sign up today and start managing your leads like never before.
       </p>
-      <Button as={Link} href="/Signup" color="primary" size="lg">
+      <Button as={Link} href="/signup" color="primary" size="lg">
         Get Started
       </Button>
     </section>

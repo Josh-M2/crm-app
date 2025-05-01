@@ -123,19 +123,19 @@ export default function NavBar() {
           </NavbarItem>
         ))}
         <NavbarItem className="hidden lg:flex">
-          <Button as={Link} variant="light" href="/Contact">
+          <Button as={Link} variant="light" href="/contact">
             Contact
           </Button>
         </NavbarItem>
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden lg:flex">
-          <Button as={Link} color="primary" href="/Login" variant="light">
+          <Button as={Link} color="primary" href="/login" variant="light">
             Login
           </Button>
         </NavbarItem>
         <NavbarItem>
-          <Button as={Link} color="primary" href="/Signup" variant="solid">
+          <Button as={Link} color="primary" href="/signup" variant="solid">
             Sign Up
           </Button>
         </NavbarItem>
@@ -165,14 +165,14 @@ export default function NavBar() {
           <Link
             className="w-full"
             color={"foreground"}
-            href="/Contact"
+            href="/contact"
             size="lg"
           >
             Contact Us
           </Link>
         </NavbarMenuItem>
         <NavbarMenuItem>
-          <Link className="w-full" color={"foreground"} href="/Login" size="lg">
+          <Link className="w-full" color={"foreground"} href="/login" size="lg">
             Login
           </Link>
         </NavbarMenuItem>
@@ -180,7 +180,7 @@ export default function NavBar() {
           <Link
             className="w-full"
             color={"foreground"}
-            href="/Signup"
+            href="/signup"
             size="lg"
           >
             Signup

@@ -13,7 +13,7 @@ export default function Home() {
       {/* Get Started Button */}
       <Button
         as="a"
-        href="#signup"
+        href="/dashboard"
         color="primary"
         size="lg"
         className="text-white bg-blue-600 hover:bg-blue-700 transition duration-300 px-8 py-3 rounded-lg"

@@ -4,9 +4,10 @@
 import { Card, Button } from "@heroui/react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Sidebar from "@/app/components/Sidebar";
+import Sidebar from "@/components/Sidebar";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 const stats = [
   { title: "Total Leads", value: "1,200" },
@@ -27,8 +28,14 @@ const activities = [
 ];
 
 export default function DashboardPage() {
-  const [isOpen, setIsOpen] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpen((prev) => !prev);
+  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
+  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
+  // const { data: session, status } = useSession();
+
+  // useEffect(() => {
+  //   console.log("session: ", session);
+  //   console.log("status: ", status);
+  // }, [session, status]);
 
   // const handleNavClick = () => {
   //   if (pathname) {
@@ -41,7 +48,7 @@ export default function DashboardPage() {
       <motion.div
         className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
         initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpen ? 0 : -256 }} // Slide in/out based on isOpen state
+        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpenSideBar state
         exit={{ x: -256 }} // Same for exit animation
         transition={{ duration: 0.01 }} // Smooth transition settings
       >
@@ -51,7 +58,7 @@ export default function DashboardPage() {
       {/* Main Content */}
       <motion.main
         className="flex flex-col w-full p-8"
-        animate={{ marginLeft: isOpen ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
+        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
         <div className="place-items-center">
@@ -91,7 +98,7 @@ export default function DashboardPage() {
       <button
         onClick={toggleSidebar}
         className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpen ? "hidden" : ""
+          isOpenSideBar ? "hidden" : ""
         }`}
       >
         =
