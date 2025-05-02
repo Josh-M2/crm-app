@@ -11,7 +11,7 @@ type SidebarTypes = {
 
 export default function Sidebar({ toggleSideBar }: SidebarTypes) {
   const [isOpen, setIsOpen] = useState<boolean>(false);
-  const [activeSection, setActiveSection] = useState<string>("");
+
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
@@ -26,7 +26,6 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
   useEffect(() => {
     if (pathname) {
       console.log("pathname", pathname);
-      setActiveSection(pathname);
     }
   }, [pathname]);
 
@@ -51,7 +50,7 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
           <Link
             href="/dashboard"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
-              pathname === "/Dashboard" ? "bg-gray-300" : ""
+              pathname === "/dashboard" ? "bg-gray-300" : ""
             }`}
           >
             Dashboard
@@ -59,7 +58,7 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
           <Link
             href="/leads"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
-              pathname === "/Leads" ? "bg-gray-300" : ""
+              pathname === "/leads" ? "bg-gray-300" : ""
             }`}
           >
             Leads
@@ -67,7 +66,7 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
           <Link
             href="/deals"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
-              pathname === "/Deals" ? "bg-gray-300" : ""
+              pathname === "/deals" ? "bg-gray-300" : ""
             }`}
           >
             Deals
@@ -75,19 +74,19 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
           <Link
             href="/analytics"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
-              pathname === "/Analytics" ? "bg-gray-300" : ""
+              pathname === "/analytics" ? "bg-gray-300" : ""
             }`}
           >
             Analytics
           </Link>
-          <Link
+          {/* <Link
             href="/settings"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
               pathname === "/settings" ? "bg-gray-300" : ""
             }`}
           >
             Settings
-          </Link>
+          </Link> */}
         </div>
 
         <Popover isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>

@@ -20,6 +20,8 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Sidebar from "@/components/Sidebar";
+import { useSession } from "next-auth/react";
+import SetUpOrg from "@/components/SetUpOrg";
 
 // Dummy lead data
 const leadsData = [
@@ -50,6 +52,13 @@ const columns = [
 ];
 
 export default function LeadsPage() {
+  const { data: session, status } = useSession();
+  const [initLeadsDataLoading, setInitLeadsDataLoading] =
+    useState<boolean>(true);
+
+  //to add types
+  const [initLeadsData, setInitLeadsData] = useState<any>(null);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
@@ -62,8 +71,6 @@ export default function LeadsPage() {
     onOpen: onAddOpen,
     onOpenChange: onAddOpenChange,
   } = useDisclosure();
-
-  // Handle opening the modal to add a new lead for a specific owner
 
   // Handle edit action for a specific lead
   const handleEditLead = (owner: string) => {
@@ -102,64 +109,70 @@ export default function LeadsPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        <div className="ml-10">
-          <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
+        {initLeadsData ? (
+          <>
+            <div className="ml-10">
+              <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
 
-          {/* Leads title and Add new lead button */}
-          <div className="flex justify-between mb-4">
-            <h3 className="text-xl font-bold ">
-              Leads for {selectedOwner || "All Owners"}
-            </h3>
-            <Button color="primary" onPress={onAddOpen}>
-              Add New Owner
-            </Button>
-          </div>
-        </div>
+              {/* Leads title and Add new lead button */}
+              <div className="flex justify-between mb-4">
+                <h3 className="text-xl font-bold ">
+                  Leads for {selectedOwner || "All Owners"}
+                </h3>
+                <Button color="primary" onPress={onAddOpen}>
+                  Add New Owner
+                </Button>
+              </div>
+            </div>
 
-        {/* Table to display leads */}
-        <Table>
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn key={column.key} className="text-center">
-                {column.label}
-              </TableColumn>
-            )}
-          </TableHeader>
+            {/* Table to display leads */}
+            <Table>
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn key={column.key} className="text-center">
+                    {column.label}
+                  </TableColumn>
+                )}
+              </TableHeader>
 
-          <TableBody items={leadsData}>
-            {(item) => (
-              <TableRow key={item.id}>
-                {columns.map((column) => (
-                  <TableCell key={column.key} className="text-center">
-                    {column.key === "actions" ? (
-                      // Custom actions column for Edit and Delete buttons
-                      <div className="flex gap-2 justify-center">
-                        <Button
-                          size="sm"
-                          variant="light"
-                          onPress={() => handleEditLead(item.owner)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="light"
-                          color="danger"
-                          onPress={() => handleDeleteLead(item.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    ) : (
-                      // Display the correct value for each column
-                      getKeyValue(item, column.key)
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              <TableBody items={leadsData}>
+                {(item) => (
+                  <TableRow key={item.id}>
+                    {columns.map((column) => (
+                      <TableCell key={column.key} className="text-center">
+                        {column.key === "actions" ? (
+                          // Custom actions column for Edit and Delete buttons
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              variant="light"
+                              onPress={() => handleEditLead(item.owner)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="light"
+                              color="danger"
+                              onPress={() => handleDeleteLead(item.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        ) : (
+                          // Display the correct value for each column
+                          getKeyValue(item, column.key)
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </>
+        ) : (
+          <SetUpOrg />
+        )}
       </motion.main>
       <button
         onClick={toggleSidebar}

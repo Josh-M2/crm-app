@@ -21,6 +21,8 @@ import {
 import { motion } from "framer-motion";
 
 import Sidebar from "@/components/Sidebar";
+import { useSession } from "next-auth/react";
+import SetUpOrg from "@/components/SetUpOrg";
 
 const revenueData = [
   { month: "Jan", year: 2023, revenue: 3000 },
@@ -60,6 +62,12 @@ const monthlyNewLeadsData = [
 ];
 
 export default function AnalyticsPage() {
+  const { data: session, status } = useSession();
+  const [initAnalyticsLoading, setInitAnalyticsDataLoading] =
+    useState<boolean>(true);
+
+  //to add types
+  const [initAnalyticsData, setInitAnalyticsData] = useState<any>(null);
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   return (
@@ -79,72 +87,80 @@ export default function AnalyticsPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        <div className="ml-10">
-          <h2 className="text-3xl font-semibold mb-6">Analytics</h2>
-        </div>
+        {initAnalyticsData ? (
+          <>
+            <div className="ml-10">
+              <h2 className="text-3xl font-semibold mb-6">Analytics</h2>
+            </div>
 
-        {/* Revenue Over Time Chart */}
-        <div className="mb-8">
-          <h3 className="text-xl font-bold mb-4">Revenue Over Time</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={revenueData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              {/* XAxis updated to safely handle both month and year */}
-              <XAxis
-                dataKey="month"
-                tickFormatter={(tick, index) => {
-                  const year = revenueData[index]?.year;
-                  return year ? `${tick} ${year}` : tick; // safely concatenate the month and year
-                }}
-              />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        {/* Leads by Status (Pie/Donut Chart) */}
-        <div className="mb-8">
-          <h3 className="text-xl font-bold mb-4">Leads by Status</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={leadsByStatusData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                fill="#8884d8"
-                label
-              >
-                {leadsByStatusData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index]}
+            {/* Revenue Over Time Chart */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold mb-4">Revenue Over Time</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  {/* XAxis updated to safely handle both month and year */}
+                  <XAxis
+                    dataKey="month"
+                    tickFormatter={(tick, index) => {
+                      const year = revenueData[index]?.year;
+                      return year ? `${tick} ${year}` : tick; // safely concatenate the month and year
+                    }}
                   />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Leads by Status (Pie/Donut Chart) */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold mb-4">Leads by Status</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={leadsByStatusData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    label
+                  >
+                    {leadsByStatusData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={
+                          ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index]
+                        }
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-        {/* Monthly New Leads (Bar Chart) */}
-        <div className="mb-8">
-          <h3 className="text-xl font-bold mb-4">Monthly New Leads</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={monthlyNewLeadsData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="newLeads" fill="#8884d8" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            {/* Monthly New Leads (Bar Chart) */}
+            <div className="mb-8">
+              <h3 className="text-xl font-bold mb-4">Monthly New Leads</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyNewLeadsData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="newLeads" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </>
+        ) : (
+          <SetUpOrg />
+        )}
       </motion.main>
       <button
         onClick={toggleSidebar}
