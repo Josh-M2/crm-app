@@ -1,6 +1,6 @@
-// middleware.ts
 import { NextRequest, NextResponse } from "next/server";
 import { protectedRoutes } from "./middleware/protectRoutes";
+import prismaInstance from "./lib/prismaInstance";
 
 export async function middleware(req: NextRequest) {
   const result = await protectedRoutes(req);

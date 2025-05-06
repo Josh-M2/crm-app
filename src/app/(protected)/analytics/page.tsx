@@ -20,9 +20,9 @@ import {
 
 import { motion } from "framer-motion";
 
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
-import SetUpOrg from "@/components/SetUpOrg";
+import SetUpOrg from "@/app/components/SetUpOrg";
 
 const revenueData = [
   { month: "Jan", year: 2023, revenue: 3000 },

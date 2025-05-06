@@ -19,9 +19,9 @@ import {
 } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
-import SetUpOrg from "@/components/SetUpOrg";
+import SetUpOrg from "@/app/components/SetUpOrg";
 
 // Dummy lead data
 const leadsData = [

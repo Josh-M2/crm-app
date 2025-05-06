@@ -1,43 +1,77 @@
-// app/dashboard/page.tsx
 "use client";
 
 import { Card, Button } from "@heroui/react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/components/Sidebar";
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import axiosInstance from "@/lib/axiosInstance";
-import SetUpOrg from "@/components/SetUpOrg";
+import SetUpOrg from "@/app/components/SetUpOrg";
+import useSWR from "swr";
+import { useOrganization } from "@/app/context/OrganizationContext";
+import { formatDistanceToNow } from "date-fns";
 
-const stats = [
-  { title: "Total Leads", value: "1,200" },
-  { title: "Active Deals", value: "320" },
-  { title: "Conversion Rate", value: "27%" },
-  { title: "Revenue", value: "$85,400" },
-];
+function formatStatsFromApi(data: {
+  leadCount: number;
+  activeDeals: number;
+  conversionRate: number;
+  revenue: number;
+}) {
+  return [
+    { title: "Total Leads", value: data.leadCount.toString() },
+    { title: "Active Deals", value: data.activeDeals.toString() },
+    { title: "Conversion Rate", value: `${data.conversionRate}%` },
+    { title: "Revenue", value: `$${Number(data.revenue).toLocaleString()}` },
+  ];
+}
 
-const activities = [
-  { id: 1, description: "New lead added: John Doe", time: "2 hours ago" },
-  { id: 2, description: "Deal closed: ACME Corp", time: "5 hours ago" },
-  { id: 3, description: "Lead updated: Jane Smith", time: "1 day ago" },
-  { id: 4, description: "New lead added: John Doe", time: "2 hours ago" },
-  { id: 5, description: "Deal closed: ACME Corp", time: "5 hours ago" },
-  { id: 6, description: "Lead updated: Jane Smith", time: "1 day ago" },
-  { id: 7, description: "Deal closed: ACME Corp", time: "5 hours ago" },
-  { id: 8, description: "Lead updated: Jane Smith", time: "1 day ago" },
-];
+type Activity = {
+  id: string;
+  description: string;
+  user: {
+    name: string;
+  };
+  timeAgo: string; // "less than a minute ago"
+};
+
+function formatActivitiesFromApi(activities: Activity[]) {
+  return activities.map((activity) => ({
+    id: activity.id,
+    description: activity.description,
+    userName: activity.user.name,
+    timeAgo: activity.timeAgo,
+  }));
+}
+
+//to make type
+const fetchDashboardData = async (refData: any) => {
+  console.log("dashbcoasrddsd: ", refData);
+  const response = await axiosInstance.get("/dashboard/init-dashboard", {
+    params: {
+      message: refData.message,
+      email: refData.email,
+      selectedOrg: refData.selectedOrg,
+    },
+  });
+
+  console.log("fetchDashboardData: ", response);
+
+  if (response?.data.error) {
+    throw new Error(`Error: ${response.data.error.status}`);
+  }
+
+  return response?.data;
+};
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
-
-  //use the loader state when integrating skeloton loaders!
-  const [initDashboardDataLoading, setInitDasboardDataLoading] =
-    useState<boolean>(true);
+  const { selectedOrg } = useOrganization();
 
   //to add types
   const [initDashboardData, setInitDasboardData] = useState<any>(null);
+  const [initDashboardActivity, setInitDasboardActivity] = useState<any>(null);
 
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
 
@@ -48,55 +82,46 @@ export default function DashboardPage() {
     console.log("status: ", status);
   }, [session, status]);
 
-  useEffect(() => {
-    const initDashboardData = async () => {
-      setInitDasboardDataLoading(true);
-
-      try {
-        const response = await axiosInstance.get("/dashboard/init-dashboard", {
-          params: {
-            email: session?.user?.email,
-          },
-        });
-
-        if (response?.data.error) {
-          console.log("errors shit");
-          switch (response.data.error.status) {
-            case 204:
-              console.log("dashboard initData: 204", response.data.error);
-              break;
-            case 401:
-              console.log("dashboard initData: 401", response.data.error);
-              break;
-            case 400:
-              console.log("dashboard initData: 400", response.data.error);
-              break;
-            default:
-              break;
-          }
-          return;
+  const {
+    data,
+    error,
+    isLoading: isLoadingDashboardData,
+    mutate,
+  } = useSWR(
+    session?.user?.email && selectedOrg
+      ? {
+          message: "fetch-dashboard-data",
+          email: session.user.email,
+          selectedOrg: selectedOrg,
         }
-
-        if (response?.data) {
-          console.log("w3wdasd", response.data);
-          setInitDasboardData(response.data);
-        }
-      } catch (error) {
-        console.error("error fetching dashboard datas:", error);
-      }
-
-      setInitDasboardDataLoading(false);
-    };
-
-    if (session && typeof window !== "undefined") {
-      const fetched = localStorage.getItem("dashboardDataFetched");
-
-      if (!fetched) {
-        localStorage.setItem("dashboardDataFetched", "true");
-        initDashboardData();
-      }
+      : null,
+    fetchDashboardData,
+    {
+      revalidateOnFocus: true, // automatically revalidate on window/tab focus
+      dedupingInterval: 60000, // dedupe requests within 1 minute
+      // refreshInterval: 5000, // optional: refresh every 5 seconds for live updates
+      onError: (err) => {
+        console.error("Error fetching dashboard data:", err);
+      },
     }
-  }, [session]);
+  );
+
+  useEffect(() => {
+    if (data) {
+      console.log("data daashboard: ", data.data);
+      const stats = formatStatsFromApi(data.data);
+      const activity = formatActivitiesFromApi(data.data.activitiesWithTimeAgo);
+      setInitDasboardActivity(activity);
+      setInitDasboardData(stats);
+    }
+  }, [data]);
+
+  // if (!session || !session.user?.email || isLoading) {
+  //   return <p>Loading...</p>; // Or any other appropriate fallback UI
+  // }
+
+  // Handle error states
+  if (error) return <p>Error: {error.message}</p>;
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -116,9 +141,9 @@ export default function DashboardPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        {initDashboardDataLoading ? (
+        {!session || !session.user?.email || isLoadingDashboardData ? (
           "" //loadershit here
-        ) : initDashboardData ? (
+        ) : selectedOrg && !isLoadingDashboardData && initDashboardData ? (
           <>
             <div className="place-items-center">
               <h2 className="text-3xl font-bold mb-2">Hi, John 👋</h2>
@@ -129,26 +154,32 @@ export default function DashboardPage() {
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.03 }}
-                  className="bg-white rounded-xl shadow p-6 text-center"
-                >
-                  <h3 className="text-xl font-semibold">{stat.value}</h3>
-                  <p className="text-gray-500">{stat.title}</p>
-                </motion.div>
-              ))}
+              {initDashboardData.map(
+                // to make types
+                (stat: any, index: number) => (
+                  <motion.div
+                    key={index}
+                    whileHover={{ scale: 1.03 }}
+                    className="bg-white rounded-xl shadow p-6 text-center"
+                  >
+                    <h3 className="text-xl font-semibold">{stat.value}</h3>
+                    <p className="text-gray-500">{stat.title}</p>
+                  </motion.div>
+                )
+              )}
             </div>
 
             {/* Recent Activity */}
             <Card className="bg-white shadow p-6">
               <h3 className="text-2xl font-semibold mb-4">Recent Activity</h3>
               <ul className="space-y-4">
-                {activities.map((activity) => (
+                {initDashboardActivity.map((activity: any) => (
                   <li key={activity.id} className="text-gray-700">
+                    {/* add madakinf more hera! */}
                     <span className="font-medium">{activity.description}</span>
-                    <div className="text-sm text-gray-400">{activity.time}</div>
+                    <div className="text-sm text-gray-400">
+                      {activity.timeAgo}
+                    </div>
                   </li>
                 ))}
               </ul>

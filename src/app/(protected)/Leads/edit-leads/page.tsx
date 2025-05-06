@@ -18,7 +18,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { motion } from "framer-motion";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/components/Sidebar";
 
 type Lead = {
   id: string;

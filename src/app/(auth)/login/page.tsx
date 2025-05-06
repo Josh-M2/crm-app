@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import NavBar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import NavBar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 import { useRouter, usePathname } from "next/navigation";
 import { ReactHTMLElement, useEffect, useMemo, useState } from "react";
 import { inputChange } from "@/lib/inputChange";

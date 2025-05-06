@@ -1,8 +1,8 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import NavBar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import NavBar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
 import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "@/lib/axiosInstance";
 import {
