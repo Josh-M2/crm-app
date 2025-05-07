@@ -48,11 +48,11 @@ function formatActivitiesFromApi(activities: Activity[]) {
 //to make type
 const fetchDashboardData = async (refData: any) => {
   console.log("dashbcoasrddsd: ", refData);
+  const [message, email, selectedOrg] = refData.split("::");
   const response = await axiosInstance.get("/dashboard/init-dashboard", {
     params: {
-      message: refData.message,
-      email: refData.email,
-      selectedOrg: refData.selectedOrg,
+      email: email,
+      selectedOrg: selectedOrg,
     },
   });
 
@@ -68,6 +68,9 @@ const fetchDashboardData = async (refData: any) => {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const { selectedOrg } = useOrganization();
+  useEffect(() => {
+    if (selectedOrg) console.log("selectedOrgDashboard: ", selectedOrg);
+  }, [selectedOrg]);
 
   //to add types
   const [initDashboardData, setInitDasboardData] = useState<any>(null);
@@ -82,29 +85,26 @@ export default function DashboardPage() {
     console.log("status: ", status);
   }, [session, status]);
 
+  const dashboardKey =
+    session?.user?.email && selectedOrg
+      ? `fetch-dashboard-data::${session.user.email}::${selectedOrg}`
+      : null;
+
   const {
     data,
     error,
     isLoading: isLoadingDashboardData,
     mutate,
-  } = useSWR(
-    session?.user?.email && selectedOrg
-      ? {
-          message: "fetch-dashboard-data",
-          email: session.user.email,
-          selectedOrg: selectedOrg,
-        }
-      : null,
-    fetchDashboardData,
-    {
-      revalidateOnFocus: true, // automatically revalidate on window/tab focus
-      dedupingInterval: 60000, // dedupe requests within 1 minute
-      // refreshInterval: 5000, // optional: refresh every 5 seconds for live updates
-      onError: (err) => {
-        console.error("Error fetching dashboard data:", err);
-      },
-    }
-  );
+  } = useSWR(dashboardKey, fetchDashboardData, {
+    revalidateOnFocus: true, // automatically revalidate on window/tab focus
+    dedupingInterval: 60000, // dedupe requests within 1 minute
+    // refreshInterval: 5000, // optional: refresh every 5 seconds for live updates
+    revalidateOnMount: true,
+
+    onError: (err) => {
+      console.error("Error fetching dashboard data:", err);
+    },
+  });
 
   useEffect(() => {
     if (data) {

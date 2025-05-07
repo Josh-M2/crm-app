@@ -2,20 +2,25 @@
 
 import React, { useEffect, useState } from "react";
 import { Button, Input, Form, Alert } from "@heroui/react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { generateUniqueName } from "@/lib/orgCodeGenerator";
 import axiosInstance from "@/lib/axiosInstance";
 import { Session } from "inspector/promises";
 import { useSession } from "next-auth/react";
+import { useOrganization } from "../context/OrganizationContext";
+import { mutate } from "swr";
 
 export default function SetUpOrg() {
   const { data: session, status } = useSession();
   const [organizationName, setOrganizationName] = useState("");
+  const { selectedOrg } = useOrganization();
   const [orgCode, setOrgCode] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const router = useRouter();
+  const pathname = usePathname();
 
   // useEffect(() => {
   //   if (session) {
@@ -46,7 +51,17 @@ export default function SetUpOrg() {
       setSuccessMessage("Organization created successfully!");
       setTimeout(() => {
         setIsCreating(false);
-        router.push("/dashboard");
+        console.log("pathname: ", pathname);
+
+        //re run swrs'
+        const dashboardKey = `fetch-dashboard-data::${session?.user?.email}::${selectedOrg}`;
+        mutate(dashboardKey);
+
+        const orgKey = `fetch-orgs::${session?.user?.email}`;
+        mutate(orgKey);
+        if (pathname !== "/dashboard") {
+          router.push("/dashboard");
+        }
       }, 1000);
     } catch (error) {
       setErrorMessage("Something went wrong while creating the organization.");
@@ -58,14 +73,21 @@ export default function SetUpOrg() {
       setErrorMessage("Please enter a valid organization code.");
       return;
     }
+    setIsJoining(true);
+    setErrorMessage("");
 
-    // Here you would make an API call to join the organization using the code
     try {
-      setIsCreating(true);
-      setErrorMessage("");
+      const response = await axiosInstance.post("/organization/join-org", {
+        email: session?.user?.email,
+        organizationCode: orgCode,
+      });
+
+      if (response) {
+        console.log("created Response: ", response);
+      }
       setSuccessMessage("Successfully joined the organization!");
       setTimeout(() => {
-        setIsCreating(false);
+        setIsJoining(false);
         router.push("/dashboard"); // Redirect to dashboard after success
       }, 1000);
     } catch (error) {
@@ -130,7 +152,7 @@ export default function SetUpOrg() {
                 onPress={handleJoinOrganization}
                 disabled={isCreating}
               >
-                {isCreating ? "Joining..." : "Join Organization"}
+                {isJoining ? "Joining..." : "Join Organization"}
               </Button>
             </Form>
           </div>

@@ -10,27 +10,37 @@ import {
 } from "@heroui/react";
 import Link from "next/link";
 import UserAvatar from "@/app/components/UserAvatar";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { redirect, usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import axiosInstance from "@/lib/axiosInstance";
-import useSWR from "swr";
 import { useOrganization } from "@/app/context/OrganizationContext";
+import { mutate, unstable_serialize } from "swr";
+import { cache } from "swr/_internal";
 
 type SidebarTypes = {
   toggleSideBar: () => void;
 };
 
 export default function Sidebar({ toggleSideBar }: SidebarTypes) {
-  const { organizations, selectedOrg, setSelectedOrg, isLoading } =
-    useOrganization();
+  const {
+    organizations,
+    selectedOrg,
+    setOrganizations,
+    setSelectedOrg,
+    isLoading,
+  } = useOrganization();
+
+  useEffect(() => {
+    if (organizations) {
+      console.log("organizationsSidebasr: ", organizations);
+    }
+  }, [organizations]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
   const router = useRouter();
   const pathname = usePathname();
   const { data: session, status } = useSession();
-
-  //to create types
 
   useEffect(() => {
     if (session && status) {
@@ -46,18 +56,34 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
   }, [pathname]);
 
   const handleLogout = async () => {
-    localStorage.removeItem("selectedOrg");
+    //deletion of swr cache data
+    for (const key of cache.keys()) {
+      if (typeof key === "string" && key.includes("fetch-dashboard-data"))
+        cache.delete(key);
+      if (typeof key === "string" && key.includes("fetch-orgs"))
+        cache.delete(key);
+    }
+    // const dashboardKey = `fetch-dashboard-data::${session?.user?.email}::${selectedOrg}`;
+    // const orgKey = `fetch-orgs::${session?.user?.email}`;
 
+    // console.log("dashboardKey: ", dashboardKey);
+    // console.log("orgKey: ", orgKey);
+
+    // await mutate(dashboardKey, undefined, { revalidate: false });
+    // await mutate(orgKey, undefined, { revalidate: false });
+
+    //resetting global context
+    setSelectedOrg(""); //reset the fking selected org
+    setOrganizations([]); //reset the fffkijng oragnizations
+
+    localStorage.removeItem("selectedOrg");
     await signOut({ redirect: false });
     router.push("/login");
   };
 
-  useEffect(() => {
-    if (selectedOrg) console.log("selectedOrgagsdghkasj: ", selectedOrg);
-  }, [selectedOrg]);
-
   const handleOrgChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const orgId = e.target.value;
+    console.log("changedorgID: ", orgId);
     setSelectedOrg(orgId);
   };
   return (
@@ -85,8 +111,12 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
             }}
           >
             {organizations.map((org) => (
-              <SelectItem key={org.id} textValue={org.name}>
-                {org.name} ({org.role})
+              <SelectItem
+                key={org.organization.id}
+                textValue={org.organization.name}
+                isReadOnly={org.organization.id === selectedOrg}
+              >
+                {org.organization.name} ({org.role})
               </SelectItem>
             ))}
           </Select>
@@ -128,14 +158,14 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
           >
             Analytics
           </Link>
-          {/* <Link
+          <Link
             href="/settings"
             className={`text-gray-700 py-3 px-2 rounded transition hover:text-black hover:bg-gray-300 ${
               pathname === "/settings" ? "bg-gray-300" : ""
             }`}
           >
             Settings
-          </Link> */}
+          </Link>
         </div>
 
         <Popover isOpen={isOpen} onOpenChange={(open) => setIsOpen(open)}>
