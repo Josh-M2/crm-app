@@ -21,6 +21,7 @@ import {
 
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
@@ -28,6 +29,7 @@ export default function SettingsPage() {
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const { selectedOrg, organizations, isLoading } = useOrganization();
   const [inputOrgNameToDelete, setInputOrgNameToDelete] = useState<string>("");
+  const router = useRouter();
 
   //to make types
   const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
@@ -76,6 +78,10 @@ export default function SettingsPage() {
     }
   };
 
+  function handleNavigate(): void {
+    router.push("/settings/manage-users");
+  }
+
   return (
     <>
       <div className="min-h-screen flex bg-gray-50">
@@ -118,10 +124,17 @@ export default function SettingsPage() {
             <Snippet size="lg">code here</Snippet>
           </div> */}
                 {selectedOrgData?.role === "ADMIN" && (
-                  <div className="flex flex-col mb-5 items-end">
-                    <Button onPress={handleOpenDeleteOrgModal} color="danger">
-                      Delete this Organization
-                    </Button>
+                  <div className="flex flex-row justify-end gap-x-2">
+                    <div className="flex flex-col mb-5 items-end">
+                      <Button onPress={handleNavigate} color="default">
+                        Manage Organization Users
+                      </Button>
+                    </div>
+                    <div className="flex flex-col mb-5 items-end">
+                      <Button onPress={handleOpenDeleteOrgModal} color="danger">
+                        Delete this Organization
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

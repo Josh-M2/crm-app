@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     console.log("userId123", userId);
 
     if (!userId) {
-      return NextResponse.json({ error: "no userId Found", status: 204 });
+      return NextResponse.json({ error: "no userId Found", status: 404 });
     }
 
     const createdOrg = await prismaInstance.organization.create({
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!createdOrg) {
-      return NextResponse.json({ error: "org not created", status: 204 });
+      return NextResponse.json({ error: "org not created", status: 404 });
     }
 
     console.log("createdOrg: ", createdOrg);
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!createOrgUser) {
-      return NextResponse.json({ error: "orguser not created", status: 204 });
+      return NextResponse.json({ error: "orguser not created", status: 404 });
     }
 
     return NextResponse.json(

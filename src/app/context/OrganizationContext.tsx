@@ -79,8 +79,6 @@ export const OrganizationProvider = ({
   });
   const [organizations, setOrganizationsState] = useState<Organization[]>([]);
 
-  console.log("calling context data");
-
   const orgKey = session?.user?.email
     ? `fetch-orgs::${session.user.email}`
     : null;

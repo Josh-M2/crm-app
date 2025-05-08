@@ -80,6 +80,19 @@ export async function GET(req: NextRequest) {
         take: 8,
       }),
     ]);
+    404;
+
+    if (
+      leadCount === undefined ||
+      convertedLeadCount === undefined ||
+      activeDeals === undefined ||
+      totalRevenue === undefined ||
+      activities === undefined
+    )
+      return NextResponse.json(
+        { error: "one of promise has no value" },
+        { status: 404 }
+      );
 
     const conversionRate =
       leadCount > 0 ? (convertedLeadCount / leadCount) * 100 : 0;

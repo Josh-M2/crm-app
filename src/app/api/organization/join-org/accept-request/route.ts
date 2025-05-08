@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { email, organizationCode } = body;
+    const { email, organizationCode, inviteId } = body;
 
     if (!email || !organizationCode)
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     console.log("userID", userID);
 
     if (!userID)
-      return NextResponse.json({ error: "no user found" }, { status: 204 });
+      return NextResponse.json({ error: "no user found" }, { status: 404 });
 
     const organizationID = await prismaInstance.organization.findUnique({
       where: { code: organizationCode },
@@ -35,7 +35,18 @@ export async function POST(req: NextRequest) {
     if (!organizationID)
       return NextResponse.json(
         { error: "no organization found" },
-        { status: 204 }
+        { status: 404 }
+      );
+
+    const invite = await prismaInstance.invite.update({
+      where: { id: inviteId },
+      data: { accepted: true },
+    });
+
+    if (!invite)
+      return NextResponse.json(
+        { error: "no invite data foun" },
+        { status: 404 }
       );
 
     const updatedOrganizationuser =
@@ -49,8 +60,8 @@ export async function POST(req: NextRequest) {
 
     if (!updatedOrganizationuser)
       return NextResponse.json(
-        { error: "unsuccesfull joining org" },
-        { status: 400 }
+        { error: "no invite data found" },
+        { status: 404 }
       );
 
     console.log("updatedOrganizationuser: ", updatedOrganizationuser);

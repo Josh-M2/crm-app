@@ -34,7 +34,6 @@ export async function GET(req: NextRequest) {
         select: {
           role: true,
           organization: true,
-          user: { select: { id: true, name: true, email: true } },
         },
       });
 

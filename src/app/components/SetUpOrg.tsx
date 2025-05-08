@@ -68,7 +68,7 @@ export default function SetUpOrg() {
     }
   };
 
-  const handleJoinOrganization = async () => {
+  const handleJoinRequestToOrganization = async () => {
     if (!orgCode) {
       setErrorMessage("Please enter a valid organization code.");
       return;
@@ -77,21 +77,24 @@ export default function SetUpOrg() {
     setErrorMessage("");
 
     try {
-      const response = await axiosInstance.post("/organization/join-org", {
-        email: session?.user?.email,
-        organizationCode: orgCode,
-      });
+      const response = await axiosInstance.post(
+        "/organization/join-org/request",
+        {
+          email: session?.user?.email,
+          organizationCode: orgCode,
+        }
+      );
 
       if (response) {
         console.log("created Response: ", response);
       }
-      setSuccessMessage("Successfully joined the organization!");
+      setSuccessMessage("Successfully request to join to the organization!");
       setTimeout(() => {
         setIsJoining(false);
         router.push("/dashboard"); // Redirect to dashboard after success
       }, 1000);
     } catch (error) {
-      setErrorMessage("Failed to join the organization.");
+      setErrorMessage("Failed to request to join to the organization.");
     }
   };
 
@@ -149,7 +152,7 @@ export default function SetUpOrg() {
                 color="primary"
                 size="lg"
                 variant="solid"
-                onPress={handleJoinOrganization}
+                onPress={handleJoinRequestToOrganization}
                 disabled={isCreating}
               >
                 {isJoining ? "Joining..." : "Join Organization"}
