@@ -95,9 +95,13 @@ export default function NavBar() {
   //     "Log Out",
   //   ];
 
+  const handleNavigate = () => {
+    router.push("/");
+  };
+
   return (
     <Navbar onMenuOpenChange={setIsMenuOpen}>
-      <NavbarContent>
+      <NavbarContent onClick={handleNavigate} className="cursor-pointer">
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"

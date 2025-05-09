@@ -30,15 +30,15 @@ export const inputChange = ({
   form,
   componentName,
 }: HandeleChangeParams) => {
-  console.log("functionining");
-  console.log("componentName", componentName);
+  // console.log("functionining");
+  // console.log("componentName", componentName);
   const { name, value } = e.target;
 
   setForm((prev: any) => ({ ...prev, [name]: value }));
 
   switch (name) {
     case "name":
-      console.log("functionining");
+      // console.log("functionining");
       setError((prev: any) => ({
         ...prev,
         nameError: validateName(value),

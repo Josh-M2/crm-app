@@ -18,7 +18,9 @@ import {
   getKeyValue,
 } from "@heroui/react";
 import { motion } from "framer-motion";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/app/components/Sidebar";
+import { useSession } from "next-auth/react";
+import SetUpOrg from "@/app/components/SetUpOrg";
 
 type Deal = {
   id: string;
@@ -61,6 +63,12 @@ const columns = [
 ];
 
 export default function DealsPage() {
+  const { data: session, status } = useSession();
+  const [initDealsDataLoading, setInitDealsLoading] = useState<boolean>(true);
+
+  //to add types
+  const [initDealsData, setInitDealsData] = useState<any>(null);
+
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const [deals, setDeals] = useState<Deal[]>(dummyDeals);
@@ -100,68 +108,74 @@ export default function DealsPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        <div className="ml-10">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold">Deals</h2>
-            <Button color="primary" onPress={onAddOpen}>
-              Add New Deal
-            </Button>
-          </div>
-        </div>
-        <Table aria-label="Deals Table">
-          <TableHeader columns={columns}>
-            {(column) => (
-              <TableColumn key={column.key} className="text-center">
-                {column.label}
-              </TableColumn>
-            )}
-          </TableHeader>
-          <TableBody items={deals}>
-            {(item) => (
-              <TableRow key={item.id}>
-                {columns.map((column) => (
-                  <TableCell key={column.key} className="text-center">
-                    {column.key === "actions" ? (
-                      <div className="flex gap-2 justify-center">
-                        <Button
-                          size="sm"
-                          variant="light"
-                          onPress={() => handleEdit(item)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="light"
-                          color="danger"
-                          onPress={() => handleDelete(item.id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    ) : column.key === "amount" ? (
-                      `$${item.amount}`
-                    ) : column.label === "status" ? (
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.status === "Pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : item.status === "Won"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    ) : (
-                      getKeyValue(item, column.key)
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+        {initDealsData ? (
+          <>
+            <div className="ml-10">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-3xl font-bold">Deals</h2>
+                <Button color="primary" onPress={onAddOpen}>
+                  Add New Deal
+                </Button>
+              </div>
+            </div>
+            <Table aria-label="Deals Table">
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn key={column.key} className="text-center">
+                    {column.label}
+                  </TableColumn>
+                )}
+              </TableHeader>
+              <TableBody items={deals}>
+                {(item) => (
+                  <TableRow key={item.id}>
+                    {columns.map((column) => (
+                      <TableCell key={column.key} className="text-center">
+                        {column.key === "actions" ? (
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              variant="light"
+                              onPress={() => handleEdit(item)}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="light"
+                              color="danger"
+                              onPress={() => handleDelete(item.id)}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                        ) : column.key === "amount" ? (
+                          `$${item.amount}`
+                        ) : column.label === "status" ? (
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              item.status === "Pending"
+                                ? "bg-yellow-100 text-yellow-700"
+                                : item.status === "Won"
+                                ? "bg-green-100 text-green-700"
+                                : "bg-red-100 text-red-700"
+                            }`}
+                          >
+                            {item.status}
+                          </span>
+                        ) : (
+                          getKeyValue(item, column.key)
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>{" "}
+          </>
+        ) : (
+          <SetUpOrg />
+        )}
       </motion.main>
 
       <button

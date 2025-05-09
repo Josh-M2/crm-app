@@ -28,8 +28,8 @@ enum DealStatus {
 }
 
 enum OrganizationUserRole {
-  AGENT // can only read
-  MINER // can only read and write
+  AGENT // can only read write (update)
+  MINER // can only read and write (update, delete, insert)
   ADMIN // can access all
 }
 

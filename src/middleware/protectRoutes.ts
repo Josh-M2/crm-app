@@ -3,9 +3,16 @@ import { getToken } from "next-auth/jwt";
 
 export async function protectedRoutes(req: NextRequest) {
   const url = req.nextUrl.clone();
-  console.log("Middleware trigg", req);
+  // console.log("Middleware trigg", req);
 
-  const protectedRoutes = ["/dashboard"];
+  const protectedRoutes = [
+    "/analytics",
+    "/dashboard",
+    "/deals",
+    "/leads",
+    "/settings",
+    "/set-up-organization",
+  ];
 
   if (protectedRoutes.includes(url.pathname)) {
     console.log("checking toke");

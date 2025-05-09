@@ -1,11 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcrypt";
 import prismaInstance from "@/lib/prismaInstance";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, name } = body;
+    console.log("signup body: ", body);
+    const { name, email, password, repassword } = body;
 
     if (!email || !password) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });

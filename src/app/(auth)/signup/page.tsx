@@ -1,9 +1,9 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import NavBar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import React, { useMemo, useState } from "react";
+import NavBar from "@/app/components/Navbar";
+import Footer from "@/app/components/Footer";
+import React, { useEffect, useMemo, useState } from "react";
 import axiosInstance from "@/lib/axiosInstance";
 import {
   validateEmail,
@@ -11,15 +11,15 @@ import {
   validatePassword,
   validateRepeatPassword,
 } from "@/lib/validators";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { inputChange } from "@/lib/inputChange";
 
 export type SignupFormTypes = {
-  name?: string;
+  name: string;
   email: string;
   password: string;
-  repassword?: string;
+  repassword: string;
 };
 
 export type ErrorSignupFormTypes = {
@@ -30,6 +30,7 @@ export type ErrorSignupFormTypes = {
 };
 
 export default function SignupPage() {
+  const { data: session, status } = useSession();
   const componentName = useMemo(() => "signup", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
   const [form, setForm] = useState<SignupFormTypes>({
@@ -112,6 +113,20 @@ export default function SignupPage() {
     }
     setIsLoading(false);
   };
+
+  useEffect(() => {
+    const checkToken = async () => {
+      try {
+        const response = await axiosInstance.get("/auth/check-token");
+        if (response.data.status === 200) router.push("/dashboard");
+      } catch (error) {
+        console.error("error checking token: ", error);
+      }
+    };
+    if (session) {
+      checkToken();
+    }
+  }, [session]);
 
   return (
     <>

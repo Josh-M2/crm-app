@@ -1,121 +1,202 @@
 "use client";
 
-import React, { useState } from "react";
-import { Button, Input, Form, Alert } from "@heroui/react";
-import { useRouter } from "next/navigation";
+import SetUpOrg from "@/app/components/SetUpOrg";
+import Sidebar from "@/app/components/Sidebar";
+import {
+  Organization,
+  useOrganization,
+} from "@/app/context/OrganizationContext";
+import {
+  Button,
+  Divider,
+  Input,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Snippet,
+  useDisclosure,
+} from "@heroui/react";
 
-export default function OrganizationSetup() {
-  const [organizationName, setOrganizationName] = useState("");
-  const [orgCode, setOrgCode] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+export default function SettingsPage() {
+  const { data: session, status } = useSession();
+  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
+  const { selectedOrg, organizations, isLoading } = useOrganization();
+  const [inputOrgNameToDelete, setInputOrgNameToDelete] = useState<string>("");
   const router = useRouter();
 
-  const handleCreateOrganization = async () => {
-    if (!organizationName) {
-      setErrorMessage("Please enter an organization name.");
-      return;
-    }
+  //to make types
+  const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
 
-    // Here you would make an API call to create an organization
-    try {
-      // Simulate API call for creating an organization
-      setIsCreating(true);
-      setErrorMessage("");
-      setSuccessMessage("Organization created successfully!");
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
+  const toggleSidebar = () => {
+    setIsOpenSideBar((prev) => !prev);
+  };
+  useEffect(() => {
+    if (selectedOrg && organizations) {
+      console.log("runs");
+      console.log("selectedOrgsettings: ", selectedOrg);
+      console.log("organizationssettings: ", organizations);
+
+      //return a copy of selected organization
+      const orgData = organizations
+        .slice()
+        .filter((org) => org.organization.id === selectedOrg);
+      if (orgData) {
+        console.log("orgData: ", orgData[0]);
+
+        setSelectedOrgData(orgData[0]);
+      }
+    }
+  }, [organizations, selectedOrg]);
+
+  const handleOpenDeleteOrgModal = () => {
+    onOpen();
+  };
+
+  //to make types
+  //mockinshit
+  const handleDeleteOrg = (data: any, onClose: any) => {
+    if (selectedOrgData?.role !== "ADMIN") return;
+
+    console.log("delete org: ", data);
+    if (data.name === inputOrgNameToDelete) {
       setTimeout(() => {
-        setIsCreating(false);
-        router.push("/dashboard"); // Redirect to dashboard after success
+        console.log("deleted: ", data.name);
+        onClose();
+        //navigate
       }, 1000);
-    } catch (error) {
-      setErrorMessage("Something went wrong while creating the organization.");
+    } else {
+      console.error("organization name not matcehd");
     }
   };
 
-  const handleJoinOrganization = async () => {
-    if (!orgCode) {
-      setErrorMessage("Please enter a valid organization code.");
-      return;
-    }
-
-    // Here you would make an API call to join the organization using the code
-    try {
-      setIsCreating(true);
-      setErrorMessage("");
-      setSuccessMessage("Successfully joined the organization!");
-      setTimeout(() => {
-        setIsCreating(false);
-        router.push("/dashboard"); // Redirect to dashboard after success
-      }, 1000);
-    } catch (error) {
-      setErrorMessage("Failed to join the organization.");
-    }
-  };
+  function handleNavigate(): void {
+    router.push("/settings/manage-users");
+  }
 
   return (
-    <div className="container mx-auto max-w-[50%] p-6">
-      <h2 className="text-3xl font-semibold mb-6">Set up Your Organization</h2>
+    <>
+      <div className="min-h-screen flex bg-gray-50">
+        <motion.div
+          className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
+          initial={{ x: -256 }} // Start hidden on the left
+          animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpenSideBar state
+          exit={{ x: -256 }} // Same for exit animation
+          transition={{ duration: 0.01 }} // Smooth transition settings
+        >
+          <Sidebar toggleSideBar={toggleSidebar} />
+        </motion.div>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-bold mb-4">Create or Join Organization</h3>
+        {/* Main Content */}
+        <motion.main
+          className="flex flex-col w-full p-8"
+          animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
+          transition={{ duration: 0.2 }} // Set transition duration for smooth effect
+        >
+          {!session || !session.user?.email || isLoading ? (
+            "" //loadershit here
+          ) : selectedOrg && !isLoading && organizations ? (
+            <>
+              <div className="place-items-center mb-5">
+                <h2 className="text-3xl font-bold ">
+                  {selectedOrgData?.organization.name}
+                </h2>
+              </div>
 
-        {/* Display success or error message */}
-        {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
-        {successMessage && <Alert color="success">{successMessage}</Alert>}
+              <div className="flex flex-col">
+                <div className="flex flex-col mb-5">
+                  <label htmlFor="org-code">Organization invite code</label>
+                  <Snippet size="lg" hideSymbol={true}>
+                    {selectedOrgData?.organization.code}
+                  </Snippet>
+                </div>
+                <Divider className="my-4" />
+                {/* <div className="flex flex-col mb-5">
+            <label htmlFor="org-code">Organization invite code</label>
+            <Snippet size="lg">code here</Snippet>
+          </div> */}
+                {selectedOrgData?.role === "ADMIN" && (
+                  <div className="flex flex-row justify-end gap-x-2">
+                    <div className="flex flex-col mb-5 items-end">
+                      <Button onPress={handleNavigate} color="default">
+                        Manage Organization Users
+                      </Button>
+                    </div>
+                    <div className="flex flex-col mb-5 items-end">
+                      <Button onPress={handleOpenDeleteOrgModal} color="danger">
+                        Delete this Organization
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <SetUpOrg />
+          )}
+        </motion.main>
 
-        <div className="flex flex-col gap-6 mb-6">
-          {/* Option 1: Create a New Organization */}
-          <div className="w-full">
-            <h4 className="text-lg font-semibold mb-3">
-              Create a New Organization
-            </h4>
-            <Form>
-              <Input
-                label="Organization Name"
-                value={organizationName}
-                onChange={(e) => setOrganizationName(e.target.value)}
-                placeholder="Enter organization name"
-              />
-              <Button
-                className="mt-4"
-                color="primary"
-                size="lg"
-                variant="solid"
-                onPress={handleCreateOrganization}
-                disabled={isCreating}
-              >
-                {isCreating ? "Creating..." : "Create Organization"}
-              </Button>
-            </Form>
-          </div>
+        {/* make this a component  */}
 
-          {/* Option 2: Join an Existing Organization */}
-          <div className="w-full">
-            <h4 className="text-lg font-semibold mb-3">
-              Join an Existing Organization
-            </h4>
-            <Form>
-              <Input
-                label="Organization Code"
-                value={orgCode}
-                onChange={(e) => setOrgCode(e.target.value)}
-                placeholder="Enter organization code"
-              />
-              <Button
-                className="mt-4"
-                color="primary"
-                size="lg"
-                variant="solid"
-                onPress={handleJoinOrganization}
-                disabled={isCreating}
-              >
-                {isCreating ? "Joining..." : "Join Organization"}
-              </Button>
-            </Form>
-          </div>
-        </div>
+        <button
+          onClick={toggleSidebar}
+          className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
+            isOpenSideBar ? "hidden" : ""
+          }`}
+        >
+          =
+        </button>
       </div>
-    </div>
+
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader>
+                Delete {selectedOrgData?.organization.name}{" "}
+              </ModalHeader>
+              <ModalBody>
+                <p>
+                  To delete this organization type "
+                  <strong>{selectedOrgData?.organization.name}</strong>" below.
+                </p>
+
+                <Input
+                  label="Organization name"
+                  type="text"
+                  name="organiztin-delete"
+                  value={inputOrgNameToDelete}
+                  onChange={(e) => setInputOrgNameToDelete(e.target.value)}
+                />
+                <p className="text-sm">
+                  This action cannot be revert. all datas in this organization
+                  will be deleted from the database (e.g leads, deals, users of
+                  the organization, analytics etc.)
+                </p>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Cancel
+                </Button>
+                <Button
+                  color="danger"
+                  onPress={() => handleDeleteOrg(selectedOrgData, onClose)}
+                >
+                  Confirm
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
   );
 }
