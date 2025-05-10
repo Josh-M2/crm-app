@@ -39,6 +39,7 @@ export default function SettingsPage() {
   const toggleSidebar = () => {
     setIsOpenSideBar((prev) => !prev);
   };
+
   useEffect(() => {
     if (selectedOrg && organizations) {
       console.log("runs");
@@ -48,7 +49,7 @@ export default function SettingsPage() {
       //return a copy of selected organization
       const orgData = organizations
         .slice()
-        .filter((org) => org.organization.id === selectedOrg);
+        .filter((org: any) => org.organization.id === selectedOrg);
       if (orgData) {
         console.log("orgData: ", orgData[0]);
 

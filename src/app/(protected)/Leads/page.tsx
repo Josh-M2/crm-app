@@ -1,14 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
+  Input,
   Link,
   Modal,
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
+  Select,
+  SelectItem,
   Table,
   TableBody,
   TableCell,
@@ -22,7 +25,11 @@ import { motion } from "framer-motion";
 import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
-import { useOrganization } from "@/app/context/OrganizationContext";
+import {
+  Organization,
+  useOrganization,
+} from "@/app/context/OrganizationContext";
+import { inputChange } from "@/lib/inputChange";
 
 // Dummy lead data
 const leadsData = [
@@ -52,7 +59,26 @@ const columns = [
   },
 ];
 
+export const animals = [
+  { key: "cat", label: "Cat" },
+  { key: "dog", label: "Dog" },
+  { key: "elephant", label: "Elephant" },
+  { key: "lion", label: "Lion" },
+  { key: "tiger", label: "Tiger" },
+  { key: "giraffe", label: "Giraffe" },
+  { key: "dolphin", label: "Dolphin" },
+  { key: "penguin", label: "Penguin" },
+  { key: "zebra", label: "Zebra" },
+  { key: "shark", label: "Shark" },
+  { key: "whale", label: "Whale" },
+  { key: "otter", label: "Otter" },
+  { key: "crocodile", label: "Crocodile" },
+];
+
 export default function LeadsPage() {
+  const componentName = useMemo(() => "LeadsPage", []);
+  const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
+
   const { data: session, status } = useSession();
   const [initLeadsDataLoading, setInitLeadsDataLoading] =
     useState<boolean>(true);
@@ -60,7 +86,7 @@ export default function LeadsPage() {
   //to add types
   const [initLeadsData, setInitLeadsData] = useState<any>(null);
 
-  const { selectedOrg } = useOrganization();
+  const { selectedOrg, organizations } = useOrganization();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
@@ -68,12 +94,25 @@ export default function LeadsPage() {
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const router = useRouter();
   const pathname = usePathname();
+  const [form, setForm] = useState<any>({
+    name: "",
+    owner: "",
+    assignedTo: "",
+  });
+
+  const [error, setError] = useState<any>({
+    nameError: "",
+    ownerError: "",
+    assignedToError: "",
+  });
 
   const {
     isOpen: isAddOpen,
     onOpen: onAddOpen,
     onOpenChange: onAddOpenChange,
   } = useDisclosure();
+
+  const [selectedOrgData, setSelectedOrgData] = useState<any>();
 
   // Handle edit action for a specific lead
   const handleEditLead = (owner: string) => {
@@ -92,8 +131,46 @@ export default function LeadsPage() {
 
   // Utility function to get values from each row based on the column key
   const getKeyValue = (item: any, columnKey: string) => {
+    // console.log("item: ", item);
+    // console.log("columnKey: ", columnKey);
+
     return item[columnKey] || "-"; // Return value of the lead property or "-" if not available
   };
+
+  const handleCreateOwnerLead = async () => {
+    console.log("handlecreateowneroflead");
+  };
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    console.log("value: ", e.target.value);
+    console.log("target: ", e);
+    inputChange({ e, setForm, setError, form, componentName });
+  };
+
+  useEffect(() => {
+    console.log("form: ", form.leadName);
+  }, [form.leadName]);
+
+  //should fetch datas of selected Organization
+  useEffect(() => {
+    if (selectedOrg && organizations) {
+      console.log("runs");
+      console.log("selectedOrg: ", selectedOrg);
+      console.log("organizations: ", organizations);
+
+      //return a copy of selected organization
+      const orgData = organizations
+        .slice()
+        .filter((org: any) => org.organization.id === selectedOrg);
+      if (orgData) {
+        console.log("orgData: ", orgData[0]);
+
+        setSelectedOrgData(orgData[0]);
+      }
+    }
+  }, [organizations, selectedOrg]);
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -112,7 +189,7 @@ export default function LeadsPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        {initLeadsData ? (
+        {selectedOrg ? (
           <>
             <div className="ml-10">
               <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
@@ -190,18 +267,116 @@ export default function LeadsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New Deal</ModalHeader>
+              <ModalHeader>Add New Owner</ModalHeader>
               <ModalBody>
-                <p>Here will be the form to create a new deal.</p>
+                <form className="space-y-6" onSubmit={handleCreateOwnerLead}>
+                  <div>
+                    <Input
+                      isRequired
+                      label="Lead Name"
+                      type="text"
+                      id="name"
+                      name="name"
+                      color={error.nameError ? "danger" : "default"}
+                      value={form.leadName}
+                      onChange={handleChange}
+                    />
+                    {/* <input
+                      type="name"
+                      id="name"
+                      name="name"
+                      className="w-full border border-gray-300 rounded-md p-3 focus:outline-none 
+                      focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="you@example.com"
+                      value={form.leadName}
+                      onChange={handleChange}
+                    /> */}
+                  </div>
+                  {error.nameError && (
+                    <label className="flex items-center !mt-1 text-rose-600 text-xs">
+                      <img
+                        src={errorImageURL}
+                        alt="error exclamatory"
+                        className="max-w-[5%] mr-1"
+                      />
+                      {error.nameError}
+                    </label>
+                  )}
+                  <div>
+                    <Select
+                      isRequired
+                      className="max-w-xs"
+                      label="Select an animal"
+                      name="owner"
+                      selectedKeys={[form.owner]}
+                      onChange={handleChange}
+                    >
+                      {animals.map((animal) => (
+                        <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                      ))}
+                    </Select>
+
+                    {/* <label
+                      className="block text-gray-700 text-sm mb-2"
+                      htmlFor="owner"
+                    >
+                      Owner
+                    </label>
+                    <input
+                      type="owner"
+                      id="owner"
+                      name="owner"
+                      className="w-full border border-gray-300 rounded-md p-3 
+                      focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                      placeholder="••••••••"
+                      value={form.owner}
+                      onChange={handleChange}
+                    />*/}
+                  </div>
+                  {/* {error.errorOwner && (
+                    <label className="flex items-center !mt-1 text-rose-600 text-xs">
+                      <img
+                        src={errorImageURL}
+                        alt="error exclamatory"
+                        className="max-w-[5%] mr-1"
+                      />
+                      {error.errorOwner}
+                    </label>
+                  )} */}
+
+                  <div>
+                    {" "}
+                    <Select
+                      disabled={selectedOrgData?.role !== "ADMIN"}
+                      className="max-w-xs"
+                      label="Assigned to"
+                      name="assignedTo"
+                      selectedKeys={[form.owner]}
+                      onChange={handleChange}
+                    >
+                      {animals.map((animal) => (
+                        <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                      ))}
+                    </Select>
+                  </div>
+                  <ModalFooter>
+                    <Button variant="light" onPress={onClose}>
+                      Cancel
+                    </Button>
+                    <Button color="primary" type="submit" onPress={onClose}>
+                      Add Deal
+                    </Button>
+                  </ModalFooter>
+                </form>
               </ModalBody>
-              <ModalFooter>
+              {/* <ModalFooter>
                 <Button variant="light" onPress={onClose}>
                   Cancel
                 </Button>
                 <Button color="primary" onPress={onClose}>
                   Add Deal
                 </Button>
-              </ModalFooter>
+              </ModalFooter> */}
             </>
           )}
         </ModalContent>

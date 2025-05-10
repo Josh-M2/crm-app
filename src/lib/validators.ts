@@ -17,6 +17,7 @@ const requiredMessage = (field: string) => `${field} is required`;
 export const validateName = (name: string): string | null => {
   if (isEmpty(name)) return requiredMessage("Name");
   if (!isValidName(name)) return "Invalid name";
+
   return null;
 };
 

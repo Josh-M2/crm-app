@@ -12,7 +12,7 @@ import {
 import { ErrorLoginFormTypes, LoginFormTypes } from "@/app/(auth)/login/page";
 
 type HandeleChangeParams = {
-  e: ChangeEvent<HTMLInputElement>;
+  e: ChangeEvent<HTMLInputElement | HTMLSelectElement>;
   setForm:
     | React.Dispatch<SetStateAction<LoginFormTypes>>
     | React.Dispatch<SetStateAction<SignupFormTypes>>;
@@ -30,8 +30,12 @@ export const inputChange = ({
   form,
   componentName,
 }: HandeleChangeParams) => {
-  // console.log("functionining");
-  // console.log("componentName", componentName);
+  console.log("functionining");
+  console.log("componentName", componentName);
+  console.log("value: ", e.target.value);
+  console.log("target: ", e.target.name);
+  console.log("form: ", form);
+
   const { name, value } = e.target;
 
   setForm((prev: any) => ({ ...prev, [name]: value }));
