@@ -10,9 +10,10 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const { email, organizationCode, inviteId } = body;
+    const { email, organizationId, inviteId } = body;
+    console.log(body);
 
-    if (!email || !organizationCode)
+    if (!email || !organizationId)
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
     const userID = await prismaInstance.user.findUnique({
@@ -24,19 +25,6 @@ export async function POST(req: NextRequest) {
 
     if (!userID)
       return NextResponse.json({ error: "no user found" }, { status: 404 });
-
-    const organizationID = await prismaInstance.organization.findUnique({
-      where: { code: organizationCode },
-      select: { id: true },
-    });
-
-    console.log("organizationID", organizationID);
-
-    if (!organizationID)
-      return NextResponse.json(
-        { error: "no organization found" },
-        { status: 404 }
-      );
 
     const invite = await prismaInstance.invite.update({
       where: { id: inviteId },
@@ -53,7 +41,7 @@ export async function POST(req: NextRequest) {
       await prismaInstance.organizationUser.create({
         data: {
           userId: userID.id,
-          organizationId: organizationID.id,
+          organizationId: organizationId,
           role: "AGENT",
         },
       });

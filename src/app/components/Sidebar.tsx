@@ -62,6 +62,10 @@ export default function Sidebar({ toggleSideBar }: SidebarTypes) {
         cache.delete(key);
       if (typeof key === "string" && key.includes("fetch-orgs"))
         cache.delete(key);
+      if (typeof key === "string" && key.includes("fetch-invites"))
+        cache.delete(key);
+      if (typeof key === "string" && key.includes("fetch-org-user"))
+        cache.delete(key);
     }
     // const dashboardKey = `fetch-dashboard-data::${session?.user?.email}::${selectedOrg}`;
     // const orgKey = `fetch-orgs::${session?.user?.email}`;

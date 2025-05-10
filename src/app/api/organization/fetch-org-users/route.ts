@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const token = getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  // if (!token)
-  //   return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!token)
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = req.nextUrl.searchParams;
 
@@ -20,6 +20,8 @@ export async function GET(req: NextRequest) {
       organizationId: orgID,
     },
     select: {
+      id: true,
+      role: true,
       user: true,
     },
   });

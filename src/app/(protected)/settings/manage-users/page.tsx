@@ -6,6 +6,10 @@ import {
   Card,
   CardBody,
   Divider,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
   Tab,
   Tabs,
 } from "@heroui/react";
@@ -80,6 +84,9 @@ export default function manageUser() {
   const router = useRouter();
   const [requestData, setRequestData] = useState<orgRequestType[]>();
   const [orgUserData, setOrgUserData] = useState<any>();
+  const [isAccepting, setIsAccepting] = useState<boolean>(false);
+  const [isDeleting, setIsDeleting] = useState<boolean>(false);
+  const [isManagingUser, setIsManagingUser] = useState<boolean>(false);
 
   const manageUserRequestKey =
     session?.user?.email && selectedOrg
@@ -146,6 +153,54 @@ export default function manageUser() {
     router.push("/settings");
   };
 
+  const handleAcceptRequest = async (user: any) => {
+    setIsAccepting(true);
+    const response = await axiosInstance.post(
+      "/organization/join-org/accept-request",
+      {
+        email: user.email,
+        organizationId: selectedOrg,
+        userId: user.id,
+      }
+    );
+    if (response?.data?.error) {
+      throw new Error(`error: `, response.data.error);
+    }
+    console.log("acceptResponse", response.data);
+    setIsAccepting(false);
+  };
+
+  const handleDeleteRequest = async (userId: string) => {
+    console.log("clickeD!", userId);
+    setIsDeleting(true);
+    const response = await axiosInstance.post(
+      "/organization/join-org/delete-request",
+      {
+        userId,
+      }
+    );
+
+    if (response.data.error) throw new Error("error: ", response.data.error);
+
+    console.log("handleDeleteRequest: ", response.data);
+    setIsDeleting(false);
+  };
+
+  const handleManageOrgUsers = async (role: string, orgUserId: string) => {
+    setIsManagingUser(true);
+    const upperCaseRole = role.toUpperCase();
+    console.log("orgUserIdajshd: ", orgUserId);
+    const response = await axiosInstance.post("/organization/setup-user", {
+      role: upperCaseRole,
+      orgUserId,
+    });
+
+    if (response?.data?.error) throw new Error("error: ", response.data.error);
+
+    console.log("handleManageOrgUsers: ", response.data);
+    setIsManagingUser(false);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="px-20 lg:mx-64">
@@ -169,29 +224,90 @@ export default function manageUser() {
               <ul className="divide-y">
                 {!orgUserData || isLoadingOrgUserData
                   ? "loadingasd"
-                  : orgUserData?.map((user: any, index: number) => (
-                      <li
-                        className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
-                        key={index}
-                      >
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
-                            {user.user.name}
-                          </p>
-                          <p className="text-sm text-gray-500 break-all">
-                            {user.user.email}
-                          </p>
-                        </div>
-                        <button className="mt-2 sm:mt-0 text-sm px-4 py-2 text-white rounded hover:bg-gray-300">
-                          <Image
-                            src={optionSVG}
-                            alt="option"
-                            width={5}
-                            height={5}
-                          />
-                        </button>
-                      </li>
-                    ))}
+                  : orgUserData?.map((user: any, index: number) =>
+                      user.user.email === session?.user?.email ? (
+                        ""
+                      ) : (
+                        <li
+                          className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
+                          key={index}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">
+                              {user.user.name}
+                            </p>
+                            <p className="text-sm text-gray-500 break-all">
+                              {user.user.email}
+                            </p>
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">
+                              {user.role}
+                            </p>
+                          </div>
+
+                          <Dropdown>
+                            <DropdownTrigger>
+                              <Button variant="light" size="sm">
+                                <Image
+                                  src={optionSVG}
+                                  alt="option"
+                                  width={5}
+                                  height={5}
+                                  className=""
+                                />
+                              </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu aria-label="Static Actions">
+                              {user.role !== "AGENT" ? (
+                                <DropdownItem
+                                  key="agent"
+                                  onPress={() => {
+                                    handleManageOrgUsers("agent", user.id);
+                                  }}
+                                >
+                                  Set as Agent
+                                </DropdownItem>
+                              ) : null}
+
+                              {user.role !== "MINER" ? (
+                                <DropdownItem
+                                  key="miner"
+                                  onPress={() => {
+                                    handleManageOrgUsers("miner", user.id);
+                                  }}
+                                >
+                                  Set as Miner
+                                </DropdownItem>
+                              ) : null}
+
+                              {user.role !== "admin" ? (
+                                <DropdownItem
+                                  key="admin"
+                                  onPress={() => {
+                                    handleManageOrgUsers("admin", user.id);
+                                  }}
+                                >
+                                  Set as Admin
+                                </DropdownItem>
+                              ) : null}
+
+                              <DropdownItem
+                                key="remove"
+                                className="text-danger"
+                                color="danger"
+                                onPress={() => {
+                                  handleManageOrgUsers("delete", user.id);
+                                }}
+                              >
+                                Remove user
+                              </DropdownItem>
+                            </DropdownMenu>
+                          </Dropdown>
+                        </li>
+                      )
+                    )}
               </ul>
             </div>
           </Tab>
@@ -216,10 +332,20 @@ export default function manageUser() {
                               johndoe@example.com
                             </p> */}
                           </div>
-                          <Button color="danger" className="mx-1">
+                          <Button
+                            color="danger"
+                            className="mx-1"
+                            onPress={() => {
+                              handleDeleteRequest(user.id);
+                            }}
+                          >
                             Delete
                           </Button>
-                          <Button color="primary" className="mx-1">
+                          <Button
+                            color="primary"
+                            className="mx-1"
+                            onPress={() => handleAcceptRequest(user)}
+                          >
                             Accept
                           </Button>
                         </li>
