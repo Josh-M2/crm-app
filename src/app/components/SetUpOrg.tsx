@@ -91,7 +91,7 @@ export default function SetUpOrg() {
       setSuccessMessage("Successfully request to join to the organization!");
       setTimeout(() => {
         setIsJoining(false);
-        router.push("/dashboard"); // Redirect to dashboard after success
+        //router.push("/dashboard"); // Redirect to dashboard after success
       }, 1000);
     } catch (error) {
       setErrorMessage("Failed to request to join to the organization.");

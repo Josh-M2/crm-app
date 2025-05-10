@@ -22,6 +22,7 @@ import { motion } from "framer-motion";
 import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import { useOrganization } from "@/app/context/OrganizationContext";
 
 // Dummy lead data
 const leadsData = [
@@ -58,6 +59,8 @@ export default function LeadsPage() {
 
   //to add types
   const [initLeadsData, setInitLeadsData] = useState<any>(null);
+
+  const { selectedOrg } = useOrganization();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
