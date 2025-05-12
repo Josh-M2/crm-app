@@ -33,20 +33,21 @@ enum OrganizationUserRole {
   ADMIN // can access all
 }
 
-
 model User {
-  id            String            @id @default(uuid())
-  email         String            @unique
-  name          String?
-  password      String           // optional, handled by NextAuth        
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-  organizations OrganizationUser[]
+  id             String           @id @default(uuid())
+  email          String           @unique
+  name           String?
+  password       String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organizations  OrganizationUser[]
   ownedOrganizations Organization[] @relation("OrganizationOwner")
-  leadsOwned    Lead[]            @relation("LeadOwner")
-  leadsAssigned Lead[]            @relation("LeadAssignee")
-  deals         Deal[]
-  activities    Activity[]
+  // leadsOwned     Lead[]           @relation("LeadOwner")
+  // leadsAssigned  Lead[]           @relation("LeadAssignee")
+  leadCategoriesOwned LeadCategory[] @relation("CategoryOwner")
+  leadCategoriesAssigned LeadCategory[] @relation("CategoryAssignee")
+  deals          Deal[]
+  activities     Activity[]
 }
 
 model Organization {
@@ -55,14 +56,19 @@ model Organization {
   code          String            @unique
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
+
   owner         User              @relation("OrganizationOwner", fields: [ownerId], references: [id])
   ownerId       String
+
   users         OrganizationUser[]
   leads         Lead[]
   deals         Deal[]
   activities    Activity[]
   invites       Invite[]
+
+  leadCategories LeadCategory[]   // 👈 New relation to LeadCategory
 }
+
 
 model OrganizationUser {
   id              String         @id @default(uuid())
@@ -74,6 +80,25 @@ model OrganizationUser {
 
   @@unique([userId, organizationId])
 }
+
+model LeadCategory {
+  id            String   @id @default(uuid())
+  name          String
+
+  owner         User     @relation("CategoryOwner", fields: [ownerId], references: [id])
+  ownerId       String
+
+  assignedTo    User     @relation("CategoryAssignee", fields: [assignedToId], references: [id])
+  assignedToId  String
+
+  organization  Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+
+  leads         Lead[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 
 model Lead {
   id              String         @id @default(uuid())
@@ -88,14 +113,13 @@ model Lead {
   organization    Organization   @relation(fields: [organizationId], references: [id])
   organizationId  String
 
-  owner           User           @relation("LeadOwner", fields: [ownerId], references: [id])
-  ownerId         String
-
-  assignedTo      User           @relation("LeadAssignee", fields: [assignedToId], references: [id])
-  assignedToId    String
+  category        LeadCategory?  @relation(fields: [categoryId], references: [id])
+  categoryId      String?
 
   activities      Activity[]
 }
+
+
 
 model Deal {
   id              String         @id @default(uuid())

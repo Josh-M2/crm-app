@@ -30,6 +30,8 @@ import {
   useOrganization,
 } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/lib/inputChange";
+import useSWR from "swr";
+import axiosInstance from "@/lib/axiosInstance";
 
 // Dummy lead data
 const leadsData = [
@@ -74,6 +76,19 @@ export const animals = [
   { key: "otter", label: "Otter" },
   { key: "crocodile", label: "Crocodile" },
 ];
+
+const handleFetchLeadsData = async (refData: string) => {
+  if (!refData) return;
+
+  const [_, email, selectedOrg] = refData.split("::");
+  const respone = await axiosInstance.get("/leads/fetch-organization-leads", {
+    params: {
+      email,
+      selectedOrg,
+    },
+  });
+  if (respone.data.error) throw new Error("error: ", respone.data.error);
+};
 
 export default function LeadsPage() {
   const componentName = useMemo(() => "LeadsPage", []);
@@ -171,6 +186,48 @@ export default function LeadsPage() {
       }
     }
   }, [organizations, selectedOrg]);
+
+  useEffect(() => {
+    if (selectedOrgData) console.log("leadSelectedOrgData: ", selectedOrgData);
+  }, [selectedOrgData]);
+
+  const leadsKey =
+    session?.user?.email && selectedOrg
+      ? `fetch-leads-data::${session.user.email}::${selectedOrg}`
+      : null;
+
+  const {
+    data,
+    error: errorSwr,
+    isLoading,
+    mutate,
+  } = useSWR(leadsKey ? leadsKey : null, handleFetchLeadsData, {
+    revalidateOnMount: true,
+    dedupingInterval: 60000,
+    revalidateOnFocus: false,
+  });
+
+  useEffect(() => {
+    if (data) {
+      setInitLeadsData(data);
+    }
+  }, [data]);
+
+  // const {
+  //   data: orgUsers,
+  //   error: errorOrgUsers,
+  //   isLoading: isLoadingOrgUsers,
+  //   mutate: mutateOrgUsers,
+  // } = useSWR(leadsKey ? leadsKey : null, handleFetchOrgUsers, {
+  //   revalidateOnMount: true,
+  //   dedupingInterval: 60000,
+  //   revalidateOnFocus: false,
+  // });
+
+  const manageOrgUserKey =
+    session?.user?.email && selectedOrg
+      ? `fetch-org-user::${selectedOrg}`
+      : null;
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -347,11 +404,20 @@ export default function LeadsPage() {
                   <div>
                     {" "}
                     <Select
-                      disabled={selectedOrgData?.role !== "ADMIN"}
+                      isDisabled={
+                        selectedOrgData?.role !== "ADMIN" &&
+                        selectedOrgData?.role === "MINER"
+                      }
                       className="max-w-xs"
                       label="Assigned to"
                       name="assignedTo"
-                      selectedKeys={[form.owner]}
+                      selectedKeys={[form.assignedTo]}
+                      placeholder={
+                        selectedOrgData?.role !== "ADMIN" &&
+                        selectedOrgData?.role === "MINER"
+                          ? `${session?.user?.name} (Me)`
+                          : ""
+                      }
                       onChange={handleChange}
                     >
                       {animals.map((animal) => (
@@ -383,4 +449,7 @@ export default function LeadsPage() {
       </Modal>
     </div>
   );
+}
+function handleFetchOrgUsers(arg: string) {
+  throw new Error("Function not implemented.");
 }
