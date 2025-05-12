@@ -66,7 +66,7 @@ model Organization {
   activities    Activity[]
   invites       Invite[]
 
-  leadCategories LeadCategory[]   // 👈 New relation to LeadCategory
+  leadCategories LeadCategory[]   
 }
 
 

@@ -30,14 +30,29 @@ import {
   useOrganization,
 } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/lib/inputChange";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import axiosInstance from "@/lib/axiosInstance";
 
 // Dummy lead data
 const leadsData = [
-  { id: 1, owner: "John Doe", leadName: "Lead A", assignedto: "Kathy" },
-  { id: 2, owner: "Jane Smith", leadName: "Lead B", assignedto: "Kathy" },
-  { id: 3, owner: "John Doe", leadName: "Lead C", assignedto: "Me" },
+  {
+    id: "asdasdasd",
+    owner: "John Doe",
+    leadName: "Lead A",
+    assignedto: "Kathy",
+  },
+  {
+    id: "asdkh12",
+    owner: "Jane Smith",
+    leadName: "Lead B",
+    assignedto: "Kathy",
+  },
+  {
+    id: "asdasdasd3213",
+    owner: "John Doe",
+    leadName: "Lead C",
+    assignedto: "Me",
+  },
   // ... more leads
 ];
 
@@ -77,7 +92,7 @@ export const animals = [
   { key: "crocodile", label: "Crocodile" },
 ];
 
-const handleFetchLeadsData = async (refData: string) => {
+const handleFetchCategorizedLeadsData = async (refData: string) => {
   if (!refData) return;
 
   const [_, email, selectedOrg] = refData.split("::");
@@ -88,6 +103,86 @@ const handleFetchLeadsData = async (refData: string) => {
     },
   });
   if (respone.data.error) throw new Error("error: ", respone.data.error);
+  console.log(
+    "handleFetchCategorizedLeadsData ",
+    respone.data.categorizedLeads
+  );
+  const formatedcategorizedLeadsData = formatLeadsData(
+    respone.data.categorizedLeads
+  );
+  console.log("formatedcategorizedLeadsData ", formatedcategorizedLeadsData);
+  return formatedcategorizedLeadsData;
+};
+
+const formatLeadsData = (apiData: []) => {
+  return apiData.map((lead: any) => ({
+    id: lead.id,
+    leadName: lead.name,
+    ownerId: lead.owner?.id || "Unknown",
+    owner: lead.owner?.name || "Unknown",
+    assignedtoId: lead.assignedTo?.id || "Unassigned",
+    assignedto: lead.assignedTo?.name || "Unassigned",
+  }));
+};
+
+const formatOrgUserDataLeadsAgent = (apiData: any) => {
+  console.log("apiData:", apiData);
+  console.log("filterName:", apiData[0]);
+
+  const formated = apiData.map((lead: any) => ({
+    id: lead.id,
+    name: lead.user.name,
+  }));
+  console.log("formated:", formated);
+
+  return formated;
+};
+
+const filterLeadsData = (apiData: []) => {
+  const minerList = apiData
+    .slice()
+    .filter((lead: any) => lead.role === "MINER");
+  const agentList = apiData
+    .slice()
+    .filter((lead: any) => lead.role === "AGENT");
+  console.log("minerList: ", minerList);
+  console.log("agentList: ", agentList);
+
+  const formatedAgentList = formatOrgUserDataLeadsAgent(agentList);
+  const formatedMinerList = formatOrgUserDataLeadsAgent(minerList);
+  console.log("formatedAgentList: ", formatedAgentList);
+  console.log("formatedMinerList: ", formatedMinerList);
+
+  return {
+    minerList: formatedAgentList ? formatedAgentList : [],
+    agentList: formatedMinerList ? formatedMinerList : [],
+  };
+};
+
+//!BUGBUGBUGBUGBUGBUG
+const handleFetchOrgUserData = async (refData: string) => {
+  if (!refData) {
+    return console.error("no refData refData");
+  }
+  const [_, selectedOrg] = refData.split("::");
+
+  const response = await axiosInstance.get("/organization/fetch-org-users", {
+    params: {
+      selectedOrg: selectedOrg,
+    },
+  });
+
+  if (response?.data.error) {
+    throw new Error(`Error: ${response.data.error.status}`);
+  }
+
+  console.log("handleFetchOrgUserData123: ", response.data);
+
+  const filteredLeadsData = filterLeadsData(response.data.orgUser);
+
+  console.log("filteredLeadsData: ", filteredLeadsData);
+
+  return filteredLeadsData;
 };
 
 export default function LeadsPage() {
@@ -95,6 +190,7 @@ export default function LeadsPage() {
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
 
   const { data: session, status } = useSession();
+  //avoid fkcing hydration
   const [initLeadsDataLoading, setInitLeadsDataLoading] =
     useState<boolean>(true);
 
@@ -133,13 +229,13 @@ export default function LeadsPage() {
   const handleEditLead = (owner: string) => {
     // Implement the edit functionality here (e.g., navigate to edit page)
     console.log("Editing lead with ID:", owner);
-    if (owner) {
-      router.push(`/Leads/edit-leads/?owner=${owner}`);
-    }
+    // if (owner) {
+    //   router.push(`/Leads/edit-leads/?owner=${owner}`);
+    // }
   };
 
   // Handle delete action for a specific lead
-  const handleDeleteLead = (id: number) => {
+  const handleDeleteLead = (id: string) => {
     // Implement the delete functionality here (e.g., remove lead from list)
     console.log("Deleting lead with ID:", id);
   };
@@ -152,8 +248,31 @@ export default function LeadsPage() {
     return item[columnKey] || "-"; // Return value of the lead property or "-" if not available
   };
 
-  const handleCreateOwnerLead = async () => {
-    console.log("handlecreateowneroflead");
+  const handleAddCategorizedLead = async (
+    selectedOrg: string,
+    form: any,
+    isAdmin: boolean
+  ) => {
+    console.log("isAdmin: ", isAdmin);
+    console.log("handleAddCategorizedLead: ", selectedOrg);
+
+    console.log("handleAddCategorizedLead: ", form);
+
+    const response = await axiosInstance.post("/leads/add-categorized-lead", {
+      selectedOrg: selectedOrg,
+      categoryName: form.name,
+      ownerId: form.owner,
+      email: form.assignedTo,
+      //for dynamic sht
+      isAdmin,
+    });
+
+    if (response.data.error) throw new Error("error: ", response.data.error);
+
+    console.log(
+      "handleAddCategorizedLead aded result: ",
+      handleAddCategorizedLead
+    );
   };
 
   const handleChange = (
@@ -197,38 +316,46 @@ export default function LeadsPage() {
       : null;
 
   const {
-    data,
+    data: categorizedLeads,
     error: errorSwr,
-    isLoading,
-    mutate,
-  } = useSWR(leadsKey ? leadsKey : null, handleFetchLeadsData, {
+    isLoading: isLoadingcategorizedLeads,
+    mutate: mutateCategorizedLeads,
+  } = useSWR(leadsKey ? leadsKey : null, handleFetchCategorizedLeadsData, {
     revalidateOnMount: true,
     dedupingInterval: 60000,
     revalidateOnFocus: false,
   });
 
   useEffect(() => {
-    if (data) {
-      setInitLeadsData(data);
+    if (categorizedLeads) {
+      setInitLeadsData(categorizedLeads);
     }
-  }, [data]);
-
-  // const {
-  //   data: orgUsers,
-  //   error: errorOrgUsers,
-  //   isLoading: isLoadingOrgUsers,
-  //   mutate: mutateOrgUsers,
-  // } = useSWR(leadsKey ? leadsKey : null, handleFetchOrgUsers, {
-  //   revalidateOnMount: true,
-  //   dedupingInterval: 60000,
-  //   revalidateOnFocus: false,
-  // });
+  }, [categorizedLeads]);
 
   const manageOrgUserKey =
     session?.user?.email && selectedOrg
       ? `fetch-org-user::${selectedOrg}`
       : null;
 
+  const {
+    data: manageOrgUserData,
+    error: errorOrgUser,
+    isLoading: isLoadingOrgUserData = true,
+    mutate: mutateOrgUser,
+  } = useSWR(
+    manageOrgUserKey ? manageOrgUserKey : null,
+    handleFetchOrgUserData,
+    {
+      dedupingInterval: 60000,
+      revalidateOnMount: true,
+      revalidateOnFocus: false,
+      // onError: (err) => {
+      //   console.error("Error fetching dashboard data:", err);
+      // },
+    }
+  );
+
+  if (status === "loading") return "loading";
   return (
     <div className="min-h-screen flex bg-gray-50">
       <motion.div
@@ -253,7 +380,7 @@ export default function LeadsPage() {
 
               {/* Leads title and Add new lead button */}
               <div className="flex justify-between mb-4">
-                <h3 className="text-xl font-bold ">
+                <h3 className="text-xl font-bold">
                   Leads for {selectedOwner || "All Owners"}
                 </h3>
                 <Button color="primary" onPress={onAddOpen}>
@@ -263,49 +390,51 @@ export default function LeadsPage() {
             </div>
 
             {/* Table to display leads */}
-            <Table>
-              <TableHeader columns={columns}>
-                {(column) => (
-                  <TableColumn key={column.key} className="text-center">
-                    {column.label}
-                  </TableColumn>
-                )}
-              </TableHeader>
+            {isLoadingcategorizedLeads
+              ? "loading"
+              : categorizedLeads && (
+                  <Table aria-label="oraganization categorized leads">
+                    <TableHeader columns={columns}>
+                      {(column) => (
+                        <TableColumn key={column.key} className="text-center">
+                          {column.label}
+                        </TableColumn>
+                      )}
+                    </TableHeader>
 
-              <TableBody items={leadsData}>
-                {(item) => (
-                  <TableRow key={item.id}>
-                    {columns.map((column) => (
-                      <TableCell key={column.key} className="text-center">
-                        {column.key === "actions" ? (
-                          // Custom actions column for Edit and Delete buttons
-                          <div className="flex gap-2 justify-center">
-                            <Button
-                              size="sm"
-                              variant="light"
-                              onPress={() => handleEditLead(item.owner)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="light"
-                              color="danger"
-                              onPress={() => handleDeleteLead(item.id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        ) : (
-                          // Display the correct value for each column
-                          getKeyValue(item, column.key)
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+                    <TableBody items={categorizedLeads}>
+                      {(item: any) => (
+                        <TableRow key={item.id}>
+                          {columns.map((column) => (
+                            <TableCell key={column.key} className="text-center">
+                              {column.key === "actions" ? (
+                                <div className="flex gap-2 justify-center">
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    onPress={() => handleEditLead(item.id)}
+                                  >
+                                    Edit
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="light"
+                                    color="danger"
+                                    onPress={() => handleDeleteLead(item.id)}
+                                  >
+                                    Delete
+                                  </Button>
+                                </div>
+                              ) : (
+                                getKeyValue(item, column.key)
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
                 )}
-              </TableBody>
-            </Table>
           </>
         ) : (
           <SetUpOrg />
@@ -324,12 +453,22 @@ export default function LeadsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New Owner</ModalHeader>
+              <ModalHeader>Add New categorized Lead</ModalHeader>
               <ModalBody>
-                <form className="space-y-6" onSubmit={handleCreateOwnerLead}>
+                <form
+                  className="space-y-6"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleAddCategorizedLead(
+                      selectedOrg as string,
+                      form,
+                      selectedOrgData?.role === "ADMIN"
+                    );
+                  }}
+                >
                   <div>
                     <Input
-                      isRequired
+                      // isRequired
                       label="Lead Name"
                       type="text"
                       id="name"
@@ -361,15 +500,15 @@ export default function LeadsPage() {
                   )}
                   <div>
                     <Select
-                      isRequired
+                      // isRequired
                       className="max-w-xs"
-                      label="Select an animal"
+                      label="Select an Agent"
                       name="owner"
                       selectedKeys={[form.owner]}
                       onChange={handleChange}
                     >
-                      {animals.map((animal) => (
-                        <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                      {manageOrgUserData?.agentList?.map((agent: any) => (
+                        <SelectItem key={agent.id}>{agent.name}</SelectItem>
                       ))}
                     </Select>
 
@@ -420,8 +559,8 @@ export default function LeadsPage() {
                       }
                       onChange={handleChange}
                     >
-                      {animals.map((animal) => (
-                        <SelectItem key={animal.key}>{animal.label}</SelectItem>
+                      {manageOrgUserData?.minerList?.map((miner: any) => (
+                        <SelectItem key={miner.id}>{miner.name}</SelectItem>
                       ))}
                     </Select>
                   </div>
@@ -429,8 +568,12 @@ export default function LeadsPage() {
                     <Button variant="light" onPress={onClose}>
                       Cancel
                     </Button>
-                    <Button color="primary" type="submit" onPress={onClose}>
-                      Add Deal
+                    <Button
+                      color="primary"
+                      type="submit"
+                      // onPress={handleAddCategorizedLead(selectedOrg, form)}
+                    >
+                      Confirm
                     </Button>
                   </ModalFooter>
                 </form>
@@ -449,7 +592,4 @@ export default function LeadsPage() {
       </Modal>
     </div>
   );
-}
-function handleFetchOrgUsers(arg: string) {
-  throw new Error("Function not implemented.");
 }

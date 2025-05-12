@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  //   if (!token)
-  //     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!token)
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = req.nextUrl.searchParams;
   // const email = body.get("email");
@@ -35,6 +35,22 @@ export async function GET(req: NextRequest) {
   const categorizedLeads = await prismaInstance.leadCategory.findMany({
     where: {
       organizationId: selectedOrg,
+    },
+    select: {
+      id: true,
+      name: true,
+      owner: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      assignedTo: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
     },
   });
 
