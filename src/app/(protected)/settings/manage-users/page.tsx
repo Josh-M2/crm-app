@@ -160,7 +160,7 @@ export default function manageUser() {
       {
         email: user.email,
         organizationId: selectedOrg,
-        userId: user.id,
+        inviteId: user.id,
       }
     );
     if (response?.data?.error) {
@@ -203,7 +203,7 @@ export default function manageUser() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="px-20 lg:mx-64">
+      <div className="px-10 lg:mx-64">
         <div>
           <button
             className="mt-5 bg-transparent hover:bg-gray-300 rounded py-3 px-5"

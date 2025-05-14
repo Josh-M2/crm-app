@@ -9,17 +9,17 @@ import {
 
 export async function GET(req: NextRequest) {
   try {
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+
+    if (!token)
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     console.log("params", req.nextUrl.searchParams);
     const body = req.nextUrl.searchParams;
     const email = body.get("email");
     const selectedOrg = body.get("selectedOrg");
     console.log("selectedOrg: ", selectedOrg);
     console.log("email: ", email);
-
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-    if (!token)
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     if (!email || !selectedOrg) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });

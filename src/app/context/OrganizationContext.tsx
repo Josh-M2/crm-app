@@ -28,7 +28,7 @@ type OrgContextType = {
   selectedOrg: string | null;
   organizations: Organization[];
   setSelectedOrg: (id: string) => void;
-  setOrganizations: (data: []) => void;
+  setOrganizations: (data: Organization[]) => void;
   isLoading: boolean;
 };
 
@@ -49,17 +49,6 @@ const fetchOrganizations = async (refData: any) => {
     console.log("fetchedOrganizations: ", response.data.userWithOrganizations);
     return response.data.userWithOrganizations;
   }
-  // const { owned, notOwned } = res.data.data;
-
-  // const ownedWithRole = (owned || []).map((org: any) => ({
-  //   ...org,
-  //   role: "Owner",
-  // }));
-
-  // const notOwnedWithRole = (notOwned || []).map((org: any) => ({
-  //   ...org,
-  //   role: "Member",
-  // }));
 
   return [];
 };
@@ -83,10 +72,14 @@ export const OrganizationProvider = ({
     ? `fetch-orgs::${session.user.email}`
     : null;
 
-  const { data: orgs, isLoading } = useSWR(orgKey, fetchOrganizations, {
-    revalidateOnFocus: false,
-    dedupingInterval: 60000,
-  });
+  const { data: orgs, isLoading } = useSWR(
+    orgKey ? orgKey : null,
+    fetchOrganizations,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000,
+    }
+  );
 
   const setSelectedOrg = (id: string) => {
     setSelectedOrgState(id);
@@ -98,37 +91,30 @@ export const OrganizationProvider = ({
     localStorage.setItem("selectedOrg", id);
   };
 
-  const setOrganizations = (data: []) => {
+  const setOrganizations = (data: Organization[]) => {
     setOrganizationsState(data);
   };
 
   useEffect(() => {
-    console.log("orgs: ", orgs);
-    if (orgs && orgs.length > 0) {
-      console.log("orgs: orgs:", orgs);
+    if (!orgs || orgs.length === 0) return;
 
-      const storedOrg = localStorage.getItem("selectedOrg");
+    const isSame =
+      JSON.stringify(orgs.map((o: any) => o.organization.id)) ===
+      JSON.stringify(organizations.map((o) => o.organization.id));
 
-      console.log("storedOrg", storedOrg);
+    if (isSame) return; // Skip unnecessary re-setting
 
-      const foundOrg = orgs.find(
-        (org: any) => org.organization.id === storedOrg
-      );
+    const storedOrg = localStorage.getItem("selectedOrg");
+    const foundOrg = orgs.find((org: any) => org.organization.id === storedOrg);
+    const fallbackOrgId = orgs[0].organization.id;
 
-      console.log("foundOrg", foundOrg);
+    setOrganizationsState(orgs);
+    setSelectedOrgState(foundOrg ? foundOrg.organization.id : fallbackOrgId);
 
-      const fallbackOrgId = orgs[0].organization.id;
-
-      console.log("fallbackOrgId", fallbackOrgId);
-
-      setOrganizationsState(orgs);
-      setSelectedOrgState(foundOrg ? foundOrg.organization.id : fallbackOrgId);
-
-      localStorage.setItem(
-        "selectedOrg",
-        foundOrg ? foundOrg.id : fallbackOrgId
-      );
-    }
+    localStorage.setItem(
+      "selectedOrg",
+      foundOrg ? foundOrg.organization.id : fallbackOrgId
+    );
   }, [orgs]);
 
   useEffect(() => {

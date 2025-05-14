@@ -6,10 +6,10 @@ import { user } from "@heroui/react";
 
 export async function GET(req: NextRequest) {
   try {
-    // const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    // if (!token) {
-    //   return NextResponse.json({ error: "unauthorized", status: 401 });
-    // }
+    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+    if (!token) {
+      return NextResponse.json({ error: "unauthorized", status: 401 });
+    }
     const body = req.nextUrl.searchParams;
     const email = body.get("email");
     console.log("email: ", email);

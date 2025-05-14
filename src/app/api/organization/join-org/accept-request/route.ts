@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     const { email, organizationId, inviteId } = body;
     console.log(body);
 
-    if (!email || !organizationId)
+    if (!email || !organizationId || !inviteId)
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
     const userID = await prismaInstance.user.findUnique({

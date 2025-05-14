@@ -146,7 +146,9 @@ export default function DashboardPage() {
         ) : selectedOrg && !isLoadingDashboardData && initDashboardData ? (
           <>
             <div className="place-items-center">
-              <h2 className="text-3xl font-bold mb-2">Hi, John 👋</h2>
+              <h2 className="text-3xl font-bold mb-2">
+                Hi, {session?.user?.name} 👋
+              </h2>
               <p className="text-gray-600 mb-8">
                 Here's what's happening with your leads today.
               </p>

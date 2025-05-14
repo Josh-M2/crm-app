@@ -7,9 +7,9 @@ import { OrganizationProvider } from "./context/OrganizationContext";
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider>
-      <HeroUIProvider>
-        <OrganizationProvider>{children}</OrganizationProvider>
-      </HeroUIProvider>
+      <OrganizationProvider>
+        <HeroUIProvider>{children}</HeroUIProvider>
+      </OrganizationProvider>
     </SessionProvider>
   );
 }
