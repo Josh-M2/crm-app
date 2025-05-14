@@ -95,6 +95,7 @@ export const animals = [
 ];
 
 const handleFetchCategorizedLeadsData = async (refData: string) => {
+  console.log("handleFetchCategorizedLeadsDataRefdata", refData);
   if (!refData) return;
 
   const [_, email, selectedOrg] = refData.split("::");
@@ -197,11 +198,21 @@ const handleFetchOrgUserData = async (refData: string) => {
   return filteredLeadsData;
 };
 
+const sendRequest = async (url: string, { arg }: { arg: any }) => {
+  console.log("url: ", url);
+  console.log("arg: ", arg);
+  const response = await axiosInstance.post(url, arg);
+  if (response.data.error) throw new Error("error: ", response.data.error);
+  console.log("deletedData: ", response.data);
+  return "ok";
+};
+
 export default function LeadsPage() {
   const componentName = useMemo(() => "LeadsPage", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
 
   const { data: session, status } = useSession();
+
   //avoid fkcing hydration
   const [initLeadsDataLoading, setInitLeadsDataLoading] =
     useState<boolean>(true);
@@ -386,15 +397,6 @@ export default function LeadsPage() {
     }
   );
 
-  const sendRequest = async (url: string, { arg }: { arg: any }) => {
-    console.log("url: ", url);
-    console.log("arg: ", arg);
-    const response = await axiosInstance.post(url, arg);
-    if (response.data.error) throw new Error("error: ", response.data.error);
-    console.log("deletedData: ", response.data);
-    return "ok";
-  };
-
   const {
     data: deletedData,
     trigger,
@@ -402,6 +404,7 @@ export default function LeadsPage() {
   } = useSWRMutation("/leads/delete-categorized-lead", sendRequest);
 
   if (status === "loading") return "loading";
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       <motion.div
@@ -438,7 +441,7 @@ export default function LeadsPage() {
             {/* Table to display leads */}
             {isLoadingcategorizedLeads
               ? "loading"
-              : categorizedLeads?.formatedcategorizedLeadsData && (
+              : categorizedLeads && (
                   <Table aria-label="oraganization categorized leads">
                     <TableHeader columns={columns}>
                       {(column) => (
@@ -449,7 +452,7 @@ export default function LeadsPage() {
                     </TableHeader>
 
                     <TableBody
-                      items={categorizedLeads?.formatedcategorizedLeadsData}
+                      items={categorizedLeads.formatedcategorizedLeadsData}
                     >
                       {(item: any) => (
                         <TableRow key={item.id}>

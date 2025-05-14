@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  // if (!token)
+  //   return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = req.nextUrl.searchParams;
   const email = body.get("email");
@@ -66,12 +66,12 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  // if (categorizedLeads !== undefined) {
-  //   return NextResponse.json(
-  //     { error: "no categorized leads found" },
-  //     { status: 404 }
-  //   );
-  // }
+  if (categorizedLeads === undefined) {
+    return NextResponse.json(
+      { error: "no categorized leads found" },
+      { status: 404 }
+    );
+  }
 
   return NextResponse.json({ categorizedLeads, userRole }, { status: 200 });
 }
