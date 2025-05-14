@@ -48,6 +48,13 @@ export const inputChange = ({
         nameError: validateName(value),
       }));
       break;
+    case "company":
+      // console.log("functionining");
+      setError((prev: any) => ({
+        ...prev,
+        companyError: validateName(value),
+      }));
+      break;
     case "email":
       setError((prev: any) => ({
         ...prev,
@@ -55,6 +62,7 @@ export const inputChange = ({
       }));
 
       break;
+
     case "password":
       setError((prev: any) => ({
         ...prev,

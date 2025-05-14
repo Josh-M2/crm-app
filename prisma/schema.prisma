@@ -97,6 +97,8 @@ model LeadCategory {
   leads         Lead[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+
+  activities    Activity[]
 }
 
 
@@ -148,6 +150,9 @@ model Activity {
 
   organization    Organization   @relation(fields: [organizationId], references: [id])
   organizationId  String
+
+  leadCategory    LeadCategory?  @relation(fields: [leadCategoryId], references: [id])
+  leadCategoryId  String?
 
   lead            Lead?          @relation(fields: [leadId], references: [id])
   leadId          String?

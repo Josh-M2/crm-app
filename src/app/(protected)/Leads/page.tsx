@@ -99,12 +99,15 @@ const handleFetchCategorizedLeadsData = async (refData: string) => {
   if (!refData) return;
 
   const [_, email, selectedOrg] = refData.split("::");
-  const respone = await axiosInstance.get("/leads/fetch-organization-leads", {
-    params: {
-      email,
-      selectedOrg,
-    },
-  });
+  const respone = await axiosInstance.get(
+    "/leads/manage-lead-category/fetch-organization-leads",
+    {
+      params: {
+        email,
+        selectedOrg,
+      },
+    }
+  );
   if (respone.data.error) throw new Error("error: ", respone.data.error);
   console.log(
     "handleFetchCategorizedLeadsData ",
@@ -247,11 +250,11 @@ export default function LeadsPage() {
   } = useDisclosure();
 
   // Handle edit action for a specific lead
-  const handleEditLead = (ownerId: string, owner: string) => {
+  const handleEditLead = (ownerId: string, leadName: string) => {
     // Implement the edit functionality here (e.g., navigate to edit page)
-    console.log("Editing lead with ID:", ownerId, owner);
-    if (owner && ownerId) {
-      router.push(`/leads/${ownerId}?owner=${owner}`);
+    console.log("Editing lead with ID:", ownerId, leadName);
+    if (leadName && ownerId) {
+      router.push(`/leads/${ownerId}?leadName=${leadName}`);
     }
   };
 
@@ -288,17 +291,20 @@ export default function LeadsPage() {
 
     console.log("handleAddCategorizedLead: ", form);
 
-    const response = await axiosInstance.post("/leads/add-categorized-lead", {
-      selectedOrg: selectedOrg,
-      categoryName: form.name,
-      ownerId: form.owner,
+    const response = await axiosInstance.post(
+      "/leads/manage-lead-category/add-categorized-lead",
+      {
+        selectedOrg: selectedOrg,
+        categoryName: form.name,
+        ownerId: form.owner,
 
-      //if user is not admin automatically set the assigned to the current miner who create the organized lead
-      email: !isAdmin ? session?.user?.email : form.assignedTo,
+        //if user is not admin automatically set the assigned to the current miner who create the organized lead
+        email: !isAdmin ? session?.user?.email : form.assignedTo,
 
-      //for dynamic sht
-      isAdmin,
-    });
+        //for dynamic sht
+        isAdmin,
+      }
+    );
 
     if (response.data.error) throw new Error("error: ", response.data.error);
 
@@ -401,7 +407,10 @@ export default function LeadsPage() {
     data: deletedData,
     trigger,
     isMutating,
-  } = useSWRMutation("/leads/delete-categorized-lead", sendRequest);
+  } = useSWRMutation(
+    "/leads/manage-lead-category/delete-categorized-lead",
+    sendRequest
+  );
 
   if (status === "loading") return "loading";
 
@@ -464,7 +473,7 @@ export default function LeadsPage() {
                                     size="sm"
                                     variant="light"
                                     onPress={() =>
-                                      handleEditLead(item.id, item.owner)
+                                      handleEditLead(item.id, item.leadName)
                                     }
                                   >
                                     Edit/View
@@ -479,7 +488,8 @@ export default function LeadsPage() {
                                         trigger({
                                           id: item.id,
                                           isAdmin:
-                                            selectedOrgData.role === "ADMIN",
+                                            categorizedLeads?.userRole ===
+                                            "ADMIN",
                                         })
                                       }
                                     >
@@ -540,16 +550,6 @@ export default function LeadsPage() {
                       value={form.leadName}
                       onChange={handleChange}
                     />
-                    {/* <input
-                      type="name"
-                      id="name"
-                      name="name"
-                      className="w-full border border-gray-300 rounded-md p-3 focus:outline-none 
-                      focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="you@example.com"
-                      value={form.leadName}
-                      onChange={handleChange}
-                    /> */}
                   </div>
                   {error.nameError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
@@ -574,49 +574,21 @@ export default function LeadsPage() {
                         <SelectItem key={agent.id}>{agent.name}</SelectItem>
                       ))}
                     </Select>
-
-                    {/* <label
-                      className="block text-gray-700 text-sm mb-2"
-                      htmlFor="owner"
-                    >
-                      Owner
-                    </label>
-                    <input
-                      type="owner"
-                      id="owner"
-                      name="owner"
-                      className="w-full border border-gray-300 rounded-md p-3 
-                      focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                      placeholder="••••••••"
-                      value={form.owner}
-                      onChange={handleChange}
-                    />*/}
                   </div>
-                  {/* {error.errorOwner && (
-                    <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
-                        src={errorImageURL}
-                        alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
-                      />
-                      {error.errorOwner}
-                    </label>
-                  )} */}
 
                   <div>
-                    {" "}
                     <Select
                       isDisabled={
-                        selectedOrgData?.role !== "ADMIN" &&
-                        selectedOrgData?.role === "MINER"
+                        categorizedLeads?.userRole?.role !== "ADMIN" &&
+                        categorizedLeads?.userRole?.role === "MINER"
                       }
                       className="max-w-xs"
                       label="Assigned to"
                       name="assignedTo"
                       selectedKeys={[form.assignedTo]}
                       placeholder={
-                        selectedOrgData?.role !== "ADMIN" &&
-                        selectedOrgData?.role === "MINER"
+                        categorizedLeads?.userRole?.role !== "ADMIN" &&
+                        categorizedLeads?.userRole?.role === "MINER"
                           ? `${session?.user?.name} (Me)`
                           : ""
                       }

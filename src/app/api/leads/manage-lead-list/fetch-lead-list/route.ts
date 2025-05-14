@@ -5,14 +5,15 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  // if (!token)
-  //   return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  //   if (!token)
+  //     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = req.nextUrl.searchParams;
   const email = body.get("email");
   const selectedOrg = body.get("selectedOrg");
+  const catid = body.get("catId");
 
-  if (!email || !selectedOrg) {
+  if (!email || !selectedOrg || !catid) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -42,36 +43,15 @@ export async function GET(req: NextRequest) {
   if (!userRole)
     return NextResponse.json({ error: "no userRole found" }, { status: 404 });
 
-  const categorizedLeads = await prismaInstance.leadCategory.findMany({
+  const leadList = await prismaInstance.lead.findMany({
     where: {
-      organizationId: selectedOrg,
-    },
-    select: {
-      id: true,
-      name: true,
-      owner: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
-      assignedTo: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
-      },
+      categoryId: catid,
     },
   });
 
-  if (categorizedLeads === undefined) {
-    return NextResponse.json(
-      { error: "no categorized leads found" },
-      { status: 404 }
-    );
+  if (leadList === undefined) {
+    return NextResponse.json({ error: "no lead list found" }, { status: 404 });
   }
 
-  return NextResponse.json({ categorizedLeads, userRole }, { status: 200 });
+  return NextResponse.json({ leadList, userRole }, { status: 200 });
 }
