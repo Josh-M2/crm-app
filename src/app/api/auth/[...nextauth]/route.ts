@@ -29,6 +29,8 @@ const handler = NextAuth({
         if (!user) {
           throw new Error("UserNotFound");
         }
+
+        console.log("useruseruser: ", user);
         // If the user exists, check the password for login
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {

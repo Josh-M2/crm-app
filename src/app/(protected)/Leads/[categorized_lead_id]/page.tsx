@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { use, useState } from "react";
 import { useSearchParams } from "next/navigation"; // Using useSearchParams
 import {
   Button,
@@ -91,10 +91,21 @@ const columns = [
   },
 ];
 
-export default function EditLeadsPage() {
+interface ProductPageProps {
+  params: Promise<{ categorized_lead_id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default function EditLeadsPage({
+  params,
+  searchParams,
+}: ProductPageProps) {
   const [leads, setLeads] = useState<Lead[]>(dummyLeads);
-  const searchParams = useSearchParams();
-  const owner = searchParams.get("owner"); // Get the 'owner' query parameter
+
+  const { categorized_lead_id } = use(params);
+  const query = use(searchParams);
+  const owner = query.owner;
+
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const {
@@ -103,7 +114,7 @@ export default function EditLeadsPage() {
     onOpenChange: onAddOpenChange,
   } = useDisclosure();
 
-  if (!owner) {
+  if (!categorized_lead_id || !owner) {
     return <div>Error: No owner found in the query parameters.</div>;
   }
 

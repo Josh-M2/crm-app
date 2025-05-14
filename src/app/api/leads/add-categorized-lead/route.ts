@@ -22,6 +22,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isAdmin) {
+    //if not admin logic
     const userId = await prismaInstance.user.findUnique({
       where: {
         email,
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json({ addedCategorizedLead }, { status: 200 });
   } else {
+    //if admin logic
     const addedCategorizedLead = await prismaInstance.leadCategory.create({
       data: {
         name: categoryName,

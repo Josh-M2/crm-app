@@ -32,6 +32,8 @@ import {
 import { inputChange } from "@/lib/inputChange";
 import useSWR, { mutate } from "swr";
 import axiosInstance from "@/lib/axiosInstance";
+import useSWRMutation from "swr/mutation";
+import axios from "axios";
 
 // Dummy lead data
 const leadsData = [
@@ -107,21 +109,32 @@ const handleFetchCategorizedLeadsData = async (refData: string) => {
     "handleFetchCategorizedLeadsData ",
     respone.data.categorizedLeads
   );
+
+  console.log("handleFetchCategorizedLeadsData ", respone.data.userRole);
+
   const formatedcategorizedLeadsData = formatLeadsData(
     respone.data.categorizedLeads
   );
   console.log("formatedcategorizedLeadsData ", formatedcategorizedLeadsData);
-  return formatedcategorizedLeadsData;
+  return {
+    formatedcategorizedLeadsData: formatedcategorizedLeadsData,
+    userRole: respone.data.userRole.role,
+  };
 };
 
 const formatLeadsData = (apiData: []) => {
+  console.log("apiData: ", apiData);
   return apiData.map((lead: any) => ({
     id: lead.id,
     leadName: lead.name,
+
     ownerId: lead.owner?.id || "Unknown",
     owner: lead.owner?.name || "Unknown",
+    ownerEmail: lead.owner?.email || "Unknown",
+
     assignedtoId: lead.assignedTo?.id || "Unassigned",
     assignedto: lead.assignedTo?.name || "Unassigned",
+    assignedtoEmail: lead.assignedTo?.email || "Unassigned",
   }));
 };
 
@@ -130,7 +143,7 @@ const formatOrgUserDataLeadsAgent = (apiData: any) => {
   console.log("filterName:", apiData[0]);
 
   const formated = apiData.map((lead: any) => ({
-    id: lead.id,
+    id: lead.user.id,
     name: lead.user.name,
   }));
   console.log("formated:", formated);
@@ -159,7 +172,6 @@ const filterLeadsData = (apiData: []) => {
   };
 };
 
-//!BUGBUGBUGBUGBUGBUG
 const handleFetchOrgUserData = async (refData: string) => {
   if (!refData) {
     return console.error("no refData refData");
@@ -198,7 +210,7 @@ export default function LeadsPage() {
   const [initLeadsData, setInitLeadsData] = useState<any>(null);
 
   const { selectedOrg, organizations } = useOrganization();
-
+  const [selectedOrgData, setSelectedOrgData] = useState<any>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
@@ -223,15 +235,13 @@ export default function LeadsPage() {
     onOpenChange: onAddOpenChange,
   } = useDisclosure();
 
-  const [selectedOrgData, setSelectedOrgData] = useState<any>();
-
   // Handle edit action for a specific lead
-  const handleEditLead = (owner: string) => {
+  const handleEditLead = (ownerId: string, owner: string) => {
     // Implement the edit functionality here (e.g., navigate to edit page)
-    console.log("Editing lead with ID:", owner);
-    // if (owner) {
-    //   router.push(`/Leads/edit-leads/?owner=${owner}`);
-    // }
+    console.log("Editing lead with ID:", ownerId, owner);
+    if (owner && ownerId) {
+      router.push(`/leads/${ownerId}?owner=${owner}`);
+    }
   };
 
   // Handle delete action for a specific lead
@@ -244,14 +254,23 @@ export default function LeadsPage() {
   const getKeyValue = (item: any, columnKey: string) => {
     // console.log("item: ", item);
     // console.log("columnKey: ", columnKey);
+    // console.log("session?.user?.email ", session?.user?.email);
 
-    return item[columnKey] || "-"; // Return value of the lead property or "-" if not available
+    return (
+      `${item[columnKey]} ${
+        columnKey === "assignedto" &&
+        item.assignedtoEmail === session?.user?.email
+          ? "(me)"
+          : ""
+      }` || "-"
+    ); // Return value of the lead property or "-" if not available
   };
 
   const handleAddCategorizedLead = async (
     selectedOrg: string,
     form: any,
-    isAdmin: boolean
+    isAdmin: boolean,
+    onClose: () => void
   ) => {
     console.log("isAdmin: ", isAdmin);
     console.log("handleAddCategorizedLead: ", selectedOrg);
@@ -262,7 +281,10 @@ export default function LeadsPage() {
       selectedOrg: selectedOrg,
       categoryName: form.name,
       ownerId: form.owner,
-      email: form.assignedTo,
+
+      //if user is not admin automatically set the assigned to the current miner who create the organized lead
+      email: !isAdmin ? session?.user?.email : form.assignedTo,
+
       //for dynamic sht
       isAdmin,
     });
@@ -273,6 +295,14 @@ export default function LeadsPage() {
       "handleAddCategorizedLead aded result: ",
       handleAddCategorizedLead
     );
+
+    if (onClose) console.log("closemodal: ", onClose);
+    onClose();
+    setForm({
+      name: "",
+      owner: "",
+      assignedTo: "",
+    });
   };
 
   const handleChange = (
@@ -328,6 +358,7 @@ export default function LeadsPage() {
 
   useEffect(() => {
     if (categorizedLeads) {
+      console.log("categorizedLeads: ", categorizedLeads);
       setInitLeadsData(categorizedLeads);
     }
   }, [categorizedLeads]);
@@ -354,6 +385,21 @@ export default function LeadsPage() {
       // },
     }
   );
+
+  const sendRequest = async (url: string, { arg }: { arg: any }) => {
+    console.log("url: ", url);
+    console.log("arg: ", arg);
+    const response = await axiosInstance.post(url, arg);
+    if (response.data.error) throw new Error("error: ", response.data.error);
+    console.log("deletedData: ", response.data);
+    return "ok";
+  };
+
+  const {
+    data: deletedData,
+    trigger,
+    isMutating,
+  } = useSWRMutation("/leads/delete-categorized-lead", sendRequest);
 
   if (status === "loading") return "loading";
   return (
@@ -392,7 +438,7 @@ export default function LeadsPage() {
             {/* Table to display leads */}
             {isLoadingcategorizedLeads
               ? "loading"
-              : categorizedLeads && (
+              : categorizedLeads?.formatedcategorizedLeadsData && (
                   <Table aria-label="oraganization categorized leads">
                     <TableHeader columns={columns}>
                       {(column) => (
@@ -402,7 +448,9 @@ export default function LeadsPage() {
                       )}
                     </TableHeader>
 
-                    <TableBody items={categorizedLeads}>
+                    <TableBody
+                      items={categorizedLeads?.formatedcategorizedLeadsData}
+                    >
                       {(item: any) => (
                         <TableRow key={item.id}>
                           {columns.map((column) => (
@@ -412,18 +460,29 @@ export default function LeadsPage() {
                                   <Button
                                     size="sm"
                                     variant="light"
-                                    onPress={() => handleEditLead(item.id)}
+                                    onPress={() =>
+                                      handleEditLead(item.id, item.owner)
+                                    }
                                   >
-                                    Edit
+                                    Edit/View
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="light"
-                                    color="danger"
-                                    onPress={() => handleDeleteLead(item.id)}
-                                  >
-                                    Delete
-                                  </Button>
+                                  {categorizedLeads?.userRole === "ADMIN" && (
+                                    <Button
+                                      size="sm"
+                                      variant="light"
+                                      color="danger"
+                                      // onPress={() => handleDeleteLead(item.id)}
+                                      onPress={() =>
+                                        trigger({
+                                          id: item.id,
+                                          isAdmin:
+                                            selectedOrgData.role === "ADMIN",
+                                        })
+                                      }
+                                    >
+                                      Delete
+                                    </Button>
+                                  )}
                                 </div>
                               ) : (
                                 getKeyValue(item, column.key)
@@ -462,7 +521,8 @@ export default function LeadsPage() {
                     handleAddCategorizedLead(
                       selectedOrg as string,
                       form,
-                      selectedOrgData?.role === "ADMIN"
+                      selectedOrgData?.role === "ADMIN",
+                      onClose
                     );
                   }}
                 >

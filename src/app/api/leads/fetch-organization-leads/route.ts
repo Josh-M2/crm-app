@@ -9,28 +9,38 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = req.nextUrl.searchParams;
-  // const email = body.get("email");
+  const email = body.get("email");
   const selectedOrg = body.get("selectedOrg");
 
-  if (
-    //!email ||
-    !selectedOrg
-  ) {
+  if (!email || !selectedOrg) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  // const userId = await prismaInstance.user.findUnique({
-  //   where: {
-  //     email,
-  //   },
-  //   select: {
-  //     id: true,
-  //   },
-  // });
+  const userId = await prismaInstance.user.findUnique({
+    where: {
+      email,
+    },
+    select: {
+      id: true,
+    },
+  });
 
-  // if (!userId) {
-  //   return NextResponse.json({ error: "no user found" }, { status: 404 });
-  // }
+  if (!userId) {
+    return NextResponse.json({ error: "no user found" }, { status: 404 });
+  }
+
+  const userRole = await prismaInstance.organizationUser.findFirst({
+    where: {
+      userId: userId.id,
+      organizationId: selectedOrg,
+    },
+    select: {
+      role: true,
+    },
+  });
+
+  if (!userRole)
+    return NextResponse.json({ error: "no userRole found" }, { status: 404 });
 
   const categorizedLeads = await prismaInstance.leadCategory.findMany({
     where: {
@@ -43,12 +53,14 @@ export async function GET(req: NextRequest) {
         select: {
           id: true,
           name: true,
+          email: true,
         },
       },
       assignedTo: {
         select: {
           id: true,
           name: true,
+          email: true,
         },
       },
     },
@@ -61,5 +73,5 @@ export async function GET(req: NextRequest) {
   //   );
   // }
 
-  return NextResponse.json({ categorizedLeads }, { status: 200 });
+  return NextResponse.json({ categorizedLeads, userRole }, { status: 200 });
 }
