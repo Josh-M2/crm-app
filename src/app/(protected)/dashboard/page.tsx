@@ -22,7 +22,7 @@ function formatStatsFromApi(data: {
   return [
     { title: "Total Leads", value: data.leadCount.toString() },
     { title: "Active Deals", value: data.activeDeals.toString() },
-    { title: "Conversion Rate", value: `${data.conversionRate}%` },
+    { title: "Conversion Rate", value: `${data.conversionRate.toFixed(2)}%` },
     { title: "Revenue", value: `$${Number(data.revenue).toLocaleString()}` },
   ];
 }
