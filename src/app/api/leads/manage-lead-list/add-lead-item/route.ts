@@ -41,13 +41,15 @@ export async function POST(req: NextRequest) {
   if (!userId) {
     return NextResponse.json({ error: "no user found" }, { status: 404 });
   }
+  const capitalizedStatus = status.toUpperCase();
+  console.log("capitalizedStatus", capitalizedStatus);
 
   const createdLead = await prismaInstance.lead.create({
     data: {
       name,
       company,
       email: leadEmail,
-      status,
+      status: capitalizedStatus,
       organizationId,
       categoryId,
       lastInteraction: new Date(),

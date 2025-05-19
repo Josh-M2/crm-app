@@ -173,6 +173,18 @@ const sendRequestToUpdateLead = async (url: string, { arg }: { arg: any }) => {
   return "ok";
 };
 
+const sendRequestToDeleteCategorizedLead = async (
+  url: string,
+  { arg }: { arg: any }
+) => {
+  console.log("url: ", url);
+  console.log("arg: ", arg);
+  const response = await axiosInstance.post(url, arg);
+  if (response.data.error) throw new Error("error: ", response.data.error);
+  console.log("deletedData: ", response.data);
+  return "ok";
+};
+
 export default function EditLeadsPage({
   params,
   searchParams,
@@ -258,9 +270,11 @@ export default function EditLeadsPage({
     onEditOpen();
   };
 
-  const handleDeleteLead = (id: string) => {
-    // Logic for deleting a lead
-    alert(`Lead with ID ${id} deleted.`);
+  const handleDeleteLead = (id: string, isAdmin: boolean) => {
+    triggerDeleteLead({
+      id,
+      isAdmin,
+    });
   };
 
   const {
@@ -311,6 +325,15 @@ export default function EditLeadsPage({
     setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
     onClose();
   };
+
+  const {
+    data: deletedLead,
+    trigger: triggerDeleteLead,
+    isMutating: isMutatingDeleteLead,
+  } = useSWRMutation(
+    "/leads/manage-lead-list/delete-lead",
+    sendRequestToDeleteCategorizedLead
+  );
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -403,7 +426,12 @@ export default function EditLeadsPage({
                               variant="light"
                               size="sm"
                               color="danger"
-                              onPress={() => handleDeleteLead(lead.id)}
+                              onPress={() =>
+                                handleDeleteLead(
+                                  lead.id,
+                                  listOfLeads.userRole === "ADMIN"
+                                )
+                              }
                             >
                               Delete
                             </Button>
@@ -531,7 +559,7 @@ export default function EditLeadsPage({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New Deal</ModalHeader>
+              <ModalHeader>Update Deal</ModalHeader>
               <ModalBody>
                 <form
                   className="space-y-6"

@@ -1,5 +1,5 @@
 "use client";
-//
+
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
@@ -201,7 +201,7 @@ const handleFetchOrgUserData = async (refData: string) => {
   return filteredLeadsData;
 };
 
-const sendRequest = async (url: string, { arg }: { arg: any }) => {
+const sendRequestToDeleteCategorizedLead = async (url: string, { arg }: { arg: any }) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
@@ -405,11 +405,11 @@ export default function LeadsPage() {
 
   const {
     data: deletedData,
-    trigger,
+    trigger: triggerDeleteCategorizedLead,
     isMutating,
   } = useSWRMutation(
     "/leads/manage-lead-category/delete-categorized-lead",
-    sendRequest
+    sendRequestToDeleteCategorizedLead
   );
 
   if (status === "loading") return "loading";
@@ -485,7 +485,7 @@ export default function LeadsPage() {
                                       color="danger"
                                       // onPress={() => handleDeleteLead(item.id)}
                                       onPress={() =>
-                                        trigger({
+                                        triggerDeleteCategorizedLead({
                                           id: item.id,
                                           isAdmin:
                                             categorizedLeads?.userRole ===

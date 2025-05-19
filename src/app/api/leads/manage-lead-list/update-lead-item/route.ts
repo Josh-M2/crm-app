@@ -5,6 +5,9 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
+  //   if (!token)
+  //     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const body = await req.json();
   const {
     name,
