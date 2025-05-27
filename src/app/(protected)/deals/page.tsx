@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   Modal,
@@ -19,226 +19,46 @@ import {
   Input,
   Select,
   SelectItem,
-  form,
 } from "@heroui/react";
 import { motion } from "framer-motion";
 import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
-import { error } from "console";
 import { useOrganization } from "@/app/context/OrganizationContext";
-import { inputChange } from "@/lib/inputChange";
+import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
-import axiosInstance from "@/lib/axiosInstance";
 import useSWRMutation from "swr/mutation";
-
-type Deal = {
-  id: string;
-  name: string;
-  amount: number;
-  status: "Pending" | "Won" | "Lost";
-  owner: string;
-  ownerId: string;
-  lastInteraction: string;
-};
-
-// const dummyDeals: Deal[] = [
-//   {
-//     id: "1",
-//     dealName: "Website Redesign",
-//     amount: 5000,
-//     status: "Pending",
-//     owner: "John Doe",
-//   },
-//   {
-//     id: "2",
-//     dealName: "Mobile App Project",
-//     amount: 15000,
-//     status: "Won",
-//     owner: "Jane Smith",
-//   },
-//   {
-//     id: "3",
-//     dealName: "SEO Optimization",
-//     amount: 3000,
-//     status: "Lost",
-//     owner: "Alice Johnson",
-//   },
-// ];
-
-const columns = [
-  { key: "name", label: "Deal Name" },
-  { key: "amount", label: "Amount" },
-  { key: "status", label: "Status" },
-  { key: "owner", label: "Owner" },
-  {
-    key: "lastInteraction",
-    label: "last Interaction",
-  },
-  { key: "actions", label: "Actions" },
-];
-
-const statusSelect = [
-  { key: "pending", label: "Pending" },
-  { key: "won", label: "Won" },
-  { key: "lost", label: "Lost" },
-];
-
-const capitalizeStatus = (status: string) => {
-  return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
-};
-
-const dealsDataFormatter = (apiData: []) => {
-  console.log("apiData: ", apiData);
-  return apiData.map((lead: any) => ({
-    id: lead.id,
-    name: lead.name,
-    amount: lead.amount || "Unknown",
-    status: capitalizeStatus(lead.status) || "Unknown",
-    owner: lead.owner.name || "Unknown",
-    ownerId: lead.owner.id || "Unknown",
-    lastInteraction: lead.updatedAt.split("T")[0],
-  }));
-};
-
-const handleInitDealsData = async (refData: string) => {
-  console.log("handleInitDealsData", refData);
-  if (!refData) return;
-
-  const [_, email, selectedOrg] = refData.split("::");
-
-  const respone = await axiosInstance.get("/deals/fetch-deals-data", {
-    params: {
-      email,
-      selectedOrg,
-    },
-  });
-
-  if (respone.data.error) throw new Error("error: ", respone.data.error);
-
-  console.log("handleInitDealsData ", respone.data.userRole);
-  console.log("handleInitDealsData ", respone.data.dealsData);
-
-  const formatedData = dealsDataFormatter(respone.data.dealsData);
-  console.log("formatedData ", formatedData);
-
-  return {
-    formatedDealsData: formatedData,
-    userRole: respone.data.userRole.role,
-  };
-};
-
-const sendRequestAddDeal = async (url: string, { arg }: { arg: any }) => {
-  console.log("url: ", url);
-  console.log("arg: ", arg);
-  const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
-  console.log("addeddata: ", response.data);
-  return "ok";
-};
-
-const sendRequestToUpdateDeal = async (url: string, { arg }: { arg: any }) => {
-  console.log("url: ", url);
-  console.log("arg: ", arg);
-  const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
-  console.log("addeddate: ", response.data);
-  return "ok";
-};
-
-const handleFetchOrgUserData = async (refData: string) => {
-  if (!refData) {
-    return console.error("no refData refData");
-  }
-  const [_, selectedOrg] = refData.split("::");
-
-  const response = await axiosInstance.get("/organization/fetch-org-users", {
-    params: {
-      selectedOrg: selectedOrg,
-    },
-  });
-
-  if (response?.data.error) {
-    throw new Error(`Error: ${response.data.error.status}`);
-  }
-
-  console.log("handleFetchOrgUserData123: ", response.data);
-
-  const filteredLeadsData = filterLeadsData(response.data.orgUser);
-
-  console.log("filteredLeadsData: ", filteredLeadsData);
-
-  return filteredLeadsData;
-};
-
-const filterLeadsData = (apiData: []) => {
-  const minerList = apiData
-    .slice()
-    .filter((lead: any) => lead.role === "MINER");
-  const agentList = apiData
-    .slice()
-    .filter((lead: any) => lead.role === "AGENT");
-  console.log("minerList: ", minerList);
-  console.log("agentList: ", agentList);
-
-  const formatedAgentList = formatOrgUserDataLeadsAgent(agentList);
-  const formatedMinerList = formatOrgUserDataLeadsAgent(minerList);
-  console.log("formatedAgentList: ", formatedAgentList);
-  console.log("formatedMinerList: ", formatedMinerList);
-
-  return {
-    minerList: formatedAgentList ? formatedAgentList : [],
-    agentList: formatedMinerList ? formatedMinerList : [],
-  };
-};
-
-const formatOrgUserDataLeadsAgent = (apiData: any) => {
-  console.log("apiData:", apiData);
-  console.log("filterName:", apiData[0]);
-
-  const formated = apiData.map((lead: any) => ({
-    id: lead.user.id,
-    name: lead.user.name,
-  }));
-  console.log("formated:", formated);
-
-  return formated;
-};
-
-const sendRequestDeleteDeal = async (url: string, { arg }: { arg: any }) => {
-  console.log("url: ", url);
-  console.log("arg: ", arg);
-  const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
-  console.log("deletedData: ", response.data);
-  return "ok";
-};
+import {
+  DealFormErrorTypes,
+  DealFormTypes,
+  DealsDataTypes,
+  ModalPurpose,
+  statusStrings,
+  StatusTypes,
+  Users,
+} from "@/app/types/deals";
+import { fetchOrgUserData, InitDealsData } from "@/app/lib/deals/api";
+import { addDeal, deleteDeal, updateDeal } from "@/app/lib/deals/mutations";
+import { columns, statusSelect } from "@/app/lib/deals/constants";
 
 export default function DealsPage() {
   const { data: session, status } = useSession();
-  const [initDealsDataLoading, setInitDealsLoading] = useState<boolean>(true);
-
   const componentName = useMemo(() => "LeadsPage", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-
   const { selectedOrg, organizations } = useOrganization();
-
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
-  // const [deals, setDeals] = useState<Deal[]>(dummyDeals);
-  const [selectedDeal, setSelectedDeal] = useState<Deal | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const [purposefunc, setPurposeFunc] = useState<ModalPurpose>("");
 
-  const [purposefunc, setPurposeFunc] = useState<string>("");
-
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<DealFormTypes>({
     name: "",
     amount: 0,
     status: "",
     owner: "",
   });
 
-  const [error, setError] = useState<any>({
+  const [error, setError] = useState<DealFormErrorTypes>({
     nameError: "",
     amountError: "",
     statusError: "",
@@ -257,19 +77,19 @@ export default function DealsPage() {
     data: deletedDeal,
     trigger: triggerDeleteDeal,
     isMutating: ismutatingDeleteDeal,
-  } = useSWRMutation("/deals/delete-deal", sendRequestDeleteDeal);
+  } = useSWRMutation("/deals/delete-deal", deleteDeal);
 
   const {
     data: insertedDeal,
     trigger: triggerAddDeal,
     isMutating: ismutatingDeal,
-  } = useSWRMutation("/deals/add-deal", sendRequestAddDeal);
+  } = useSWRMutation("/deals/add-deal", addDeal);
 
   const {
     data: updatedDeal,
     trigger: triggerUpdateDeal,
     isMutating: isMutatingUpdateDeal,
-  } = useSWRMutation("/deals/update-deal", sendRequestToUpdateDeal);
+  } = useSWRMutation("/deals/update-deal", updateDeal);
 
   const initDealsDataKey =
     session?.user?.email && selectedOrg
@@ -281,11 +101,15 @@ export default function DealsPage() {
     error: errorinitDealsData,
     isLoading: isLoadingDealsData,
     mutate,
-  } = useSWR(initDealsDataKey ? initDealsDataKey : null, handleInitDealsData, {
+  } = useSWR(initDealsDataKey ? initDealsDataKey : null, InitDealsData, {
     revalidateOnMount: true,
     dedupingInterval: 60000,
     revalidateOnFocus: false,
   });
+
+  useEffect(() => {
+    if (initDealsData) console.log("initDealsData: ", initDealsData);
+  }, [initDealsData]);
 
   const manageOrgUserKey =
     session?.user?.email && selectedOrg
@@ -297,65 +121,75 @@ export default function DealsPage() {
     error: errorOrgUser,
     isLoading: isLoadingOrgUserData = true,
     mutate: mutateOrgUser,
-  } = useSWR(
-    manageOrgUserKey ? manageOrgUserKey : null,
-    handleFetchOrgUserData,
-    {
-      dedupingInterval: 60000,
-      revalidateOnMount: true,
-      revalidateOnFocus: false,
-      // onError: (err) => {
-      //   console.error("Error fetching dashboard data:", err);
-      // },
-    }
-  );
+  } = useSWR(manageOrgUserKey ? manageOrgUserKey : null, fetchOrgUserData, {
+    dedupingInterval: 60000,
+    revalidateOnMount: true,
+    revalidateOnFocus: false,
+    // onError: (err) => {
+    //   console.error("Error fetching dashboard data:", err);
+    // },
+  });
 
   const clearForm = () => {
     setForm({ name: "", amount: 0, status: "", owner: "" });
   };
 
-  const handleOpenModal = (purpose: string, form?: Deal) => {
-    console.log("form: ", form);
-    setPurposeFunc(purpose);
-    switch (purpose) {
-      case "edit":
-        console.log("handleOpenModal: ", form);
-        setForm({ ...form, owner: form?.ownerId });
-        break;
-      case "add":
-        clearForm();
-        break;
-      default:
-        break;
-    }
+  const handleOpenModal = useCallback(
+    (purpose: ModalPurpose, userdata?: DealsDataTypes) => {
+      console.log("userdata: ", userdata);
+      setPurposeFunc(purpose as "add" | "edit");
+      switch (purpose) {
+        case "edit":
+          console.log("handleOpenModal: ", userdata);
+          setForm({
+            name: userdata?.name !== undefined ? userdata.name : "unknown",
+            amount:
+              userdata?.amount !== undefined ? Number(userdata.amount) : 0,
+            status:
+              userdata?.status !== undefined
+                ? (userdata.status as statusStrings)
+                : "",
+            owner:
+              userdata?.ownerId !== undefined ? userdata.ownerId : "unknown",
+            id: userdata?.id !== undefined ? userdata.id : "unknown",
+          });
+          break;
+        case "add":
+          clearForm();
+          break;
+        default:
+          break;
+      }
 
-    onOpen();
-  };
+      onOpen();
+    },
+    [setForm, onOpen]
+  );
 
   const handleSubmitFrom = async (
     onClose: () => void,
     orgID: string,
-    form: any
+    data: DealsDataTypes | DealFormTypes
   ) => {
-    console.log("handleSubmitFrom: ", form);
+    console.log("handleSubmitFrom: ", data);
     switch (purposefunc) {
       case "edit":
         await triggerUpdateDeal({
-          dealId: form.id,
-          name: form.name,
-          amount: form.amount,
-          status: form.status,
-          ownerId: form.owner,
+          dealId: data.id as string,
+          name: data.name,
+          amount: data.amount,
+          status: data.status as statusStrings,
+          ownerId: data.owner,
         });
         clearForm();
         break;
       case "add":
         await triggerAddDeal({
           selectedOrg: orgID,
-          name: form.name,
-          amount: form.amount,
-          status: form.status,
-          userid: form.owner,
+          name: data.name,
+          amount: data.amount,
+          status: data.status as statusStrings,
+          userid: data.owner,
         });
 
         clearForm();
@@ -411,7 +245,7 @@ export default function DealsPage() {
                     <TableBody items={initDealsData.formatedDealsData}>
                       {(item) => (
                         <TableRow key={item.id}>
-                          {columns.map((column) => (
+                          {columns.map((column: StatusTypes) => (
                             <TableCell key={column.key} className="text-center">
                               {column.key === "actions" ? (
                                 <div className="flex gap-2 justify-center">
@@ -422,9 +256,9 @@ export default function DealsPage() {
                                       handleOpenModal("edit", {
                                         ...item,
                                         status: item.status as
-                                          | "Pending"
-                                          | "Won"
-                                          | "Lost",
+                                          | "pending"
+                                          | "won"
+                                          | "lost",
                                       })
                                     }
                                   >
@@ -452,9 +286,9 @@ export default function DealsPage() {
                               ) : column.label === "status" ? (
                                 <span
                                   className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                    item.status === "Pending"
+                                    item.status === "pending"
                                       ? "bg-yellow-100 text-yellow-700"
-                                      : item.status === "Won"
+                                      : item.status === "won"
                                       ? "bg-green-100 text-green-700"
                                       : "bg-red-100 text-red-700"
                                   }`}
@@ -489,7 +323,9 @@ export default function DealsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New categorized Lead</ModalHeader>
+              <ModalHeader>
+                {purposefunc === "edit" ? "Edit Deal" : "Add New Deal"}
+              </ModalHeader>
               <ModalBody>
                 <form
                   className="space-y-6"
@@ -530,7 +366,7 @@ export default function DealsPage() {
                       id="amount"
                       name="amount"
                       color={error.amountError ? "danger" : "default"}
-                      value={form.amount}
+                      value={form.amount.toString()}
                       onChange={handleChange}
                     />
                   </div>
@@ -554,9 +390,11 @@ export default function DealsPage() {
                       selectedKeys={[form.owner]}
                       onChange={handleChange}
                     >
-                      {manageOrgUserData?.agentList?.map((agent: any) => (
-                        <SelectItem key={agent.id}>{agent.name}</SelectItem>
-                      ))}
+                      {(manageOrgUserData?.agentList ?? []).map(
+                        (agent: Users) => (
+                          <SelectItem key={agent.id}>{agent.name}</SelectItem>
+                        )
+                      )}
                     </Select>
                   </div>
 
@@ -569,7 +407,7 @@ export default function DealsPage() {
                       selectedKeys={[form.status.toLowerCase()]}
                       onChange={handleChange}
                     >
-                      {statusSelect?.map((status: any) => (
+                      {statusSelect?.map((status: StatusTypes) => (
                         <SelectItem key={status.key}>{status.label}</SelectItem>
                       ))}
                     </Select>
