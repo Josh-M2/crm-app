@@ -1,15 +1,16 @@
-import prismaInstance from "@/lib/prismaInstance";
+import prismaInstance from "@/app/lib/prismaInstance";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-  //   if (!token)
-  //     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!token)
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const body = await req.json();
   const { dealId, name, amount, ownerId, status } = body;
+  console.log(body);
 
   if (!dealId || !name || !status || !amount || !ownerId)
     return NextResponse.json({ error: "Missing field" }, { status: 400 });

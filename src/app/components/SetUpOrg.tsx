@@ -3,8 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { Button, Input, Form, Alert } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
-import { generateUniqueName } from "@/lib/orgCodeGenerator";
-import axiosInstance from "@/lib/axiosInstance";
+import { generateUniqueName } from "@/app/lib/orgCodeGenerator";
+import axiosInstance from "@/app/lib/axiosInstance";
 import { Session } from "inspector/promises";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "../context/OrganizationContext";

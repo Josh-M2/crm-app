@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "@/app/lib/axiosInstance";
 
 export async function GET(req: NextRequest) {
   try {

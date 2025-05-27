@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prismaInstance";
+import prisma from "@/app/lib/prismaInstance";
 import { getToken } from "next-auth/jwt";
-import prismaInstance from "@/lib/prismaInstance";
+import prismaInstance from "@/app/lib/prismaInstance";
 import { user } from "@heroui/react";
 
 export async function GET(req: NextRequest) {

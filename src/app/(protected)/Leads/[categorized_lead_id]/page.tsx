@@ -25,8 +25,8 @@ import Sidebar from "@/app/components/Sidebar";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
-import axiosInstance from "@/lib/axiosInstance";
-import { inputChange } from "@/lib/inputChange";
+import axiosInstance from "@/app/lib/axiosInstance";
+import { inputChange } from "@/app/lib/inputChange";
 import useSWRMutation from "swr/mutation";
 
 type Lead = {
