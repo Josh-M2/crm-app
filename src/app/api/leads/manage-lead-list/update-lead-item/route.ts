@@ -1,18 +1,12 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
   const {
     name,
     company,
-    email,
     leadEmail,
     status,
     organizationId,
@@ -23,7 +17,6 @@ export async function POST(req: NextRequest) {
   if (
     !name ||
     !company ||
-    !email ||
     !status ||
     !leadEmail ||
     !organizationId ||
@@ -32,22 +25,17 @@ export async function POST(req: NextRequest) {
   )
     return NextResponse.json({ error: "Missing field" }, { status: 400 });
 
-  const userId = await prismaInstance.user.findUnique({
-    where: { email },
-    select: {
-      id: true,
-    },
-  });
+  const auth = await getOrgMembership(req, organizationId);
 
-  if (!userId) {
-    return NextResponse.json({ error: "no user found" }, { status: 404 });
-  }
+  if ("response" in auth) return auth.response;
 
   const capitalizedStatus = status.toUpperCase();
 
-  const updatedLead = await prismaInstance.lead.update({
+  const updatedLeadResult = await prismaInstance.lead.updateMany({
     where: {
       id: leadId,
+      organizationId,
+      categoryId,
     },
     data: {
       name,
@@ -60,15 +48,30 @@ export async function POST(req: NextRequest) {
     },
   });
 
+  if (updatedLeadResult.count === 0)
+    return NextResponse.json(
+      { error: "no updafated lead found" },
+      { status: 404 }
+    );
+
+  const updatedLead = await prismaInstance.lead.findFirst({
+    where: {
+      id: leadId,
+      organizationId,
+      categoryId,
+    },
+  });
+
   if (!updatedLead)
     return NextResponse.json(
       { error: "no updafated lead found" },
       { status: 404 }
     );
 
-  const catgoryName = await prismaInstance.leadCategory.findUnique({
+  const catgoryName = await prismaInstance.leadCategory.findFirst({
     where: {
       id: categoryId,
+      organizationId,
     },
     select: {
       name: true,
@@ -81,7 +84,7 @@ export async function POST(req: NextRequest) {
   const createdActivity = await prismaInstance.activity.create({
     data: {
       description: `Updated a lead to ${catgoryName.name}`,
-      userId: userId.id,
+      userId: auth.user.id,
       organizationId: organizationId,
       leadId: updatedLead.id,
     },

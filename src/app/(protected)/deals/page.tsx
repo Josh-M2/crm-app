@@ -28,6 +28,7 @@ import { useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
+import Image from "next/image";
 import {
   DealFormErrorTypes,
   DealFormTypes,
@@ -45,7 +46,7 @@ export default function DealsPage() {
   const { data: session, status } = useSession();
   const componentName = useMemo(() => "LeadsPage", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-  const { selectedOrg, organizations } = useOrganization();
+  const { selectedOrg } = useOrganization();
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -73,23 +74,20 @@ export default function DealsPage() {
     inputChange({ e, setForm, setError, form, componentName });
   };
 
-  const {
-    data: deletedDeal,
-    trigger: triggerDeleteDeal,
-    isMutating: ismutatingDeleteDeal,
-  } = useSWRMutation("/deals/delete-deal", deleteDeal);
+  const { trigger: triggerDeleteDeal } = useSWRMutation(
+    "/deals/delete-deal",
+    deleteDeal
+  );
 
-  const {
-    data: insertedDeal,
-    trigger: triggerAddDeal,
-    isMutating: ismutatingDeal,
-  } = useSWRMutation("/deals/add-deal", addDeal);
+  const { trigger: triggerAddDeal } = useSWRMutation(
+    "/deals/add-deal",
+    addDeal
+  );
 
-  const {
-    data: updatedDeal,
-    trigger: triggerUpdateDeal,
-    isMutating: isMutatingUpdateDeal,
-  } = useSWRMutation("/deals/update-deal", updateDeal);
+  const { trigger: triggerUpdateDeal } = useSWRMutation(
+    "/deals/update-deal",
+    updateDeal
+  );
 
   const initDealsDataKey =
     session?.user?.email && selectedOrg
@@ -98,9 +96,7 @@ export default function DealsPage() {
 
   const {
     data: initDealsData,
-    error: errorinitDealsData,
     isLoading: isLoadingDealsData,
-    mutate,
   } = useSWR(initDealsDataKey ? initDealsDataKey : null, InitDealsData, {
     revalidateOnMount: true,
     dedupingInterval: 60000,
@@ -118,9 +114,6 @@ export default function DealsPage() {
 
   const {
     data: manageOrgUserData,
-    error: errorOrgUser,
-    isLoading: isLoadingOrgUserData = true,
-    mutate: mutateOrgUser,
   } = useSWR(manageOrgUserKey ? manageOrgUserKey : null, fetchOrgUserData, {
     dedupingInterval: 60000,
     revalidateOnMount: true,
@@ -176,6 +169,7 @@ export default function DealsPage() {
       case "edit":
         await triggerUpdateDeal({
           dealId: data.id as string,
+          selectedOrg: orgID,
           name: data.name,
           amount: data.amount,
           status: data.status as statusStrings,
@@ -272,8 +266,7 @@ export default function DealsPage() {
                                       onPress={() =>
                                         triggerDeleteDeal({
                                           id: item.id,
-                                          isAdmin:
-                                            initDealsData?.userRole === "ADMIN",
+                                          selectedOrg,
                                         })
                                       }
                                     >
@@ -349,10 +342,12 @@ export default function DealsPage() {
                   </div>
                   {error.nameError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.nameError}
                     </label>
@@ -372,10 +367,12 @@ export default function DealsPage() {
                   </div>
                   {error.amountError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.amountError}
                     </label>

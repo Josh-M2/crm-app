@@ -21,7 +21,6 @@ import {
 import { motion } from "framer-motion";
 
 import Sidebar from "@/app/components/Sidebar";
-import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
 
 const revenueData = [
@@ -62,12 +61,7 @@ const monthlyNewLeadsData = [
 ];
 
 export default function AnalyticsPage() {
-  const { data: session, status } = useSession();
-  const [initAnalyticsLoading, setInitAnalyticsDataLoading] =
-    useState<boolean>(true);
-
-  //to add types
-  const [initAnalyticsData, setInitAnalyticsData] = useState<any>(null);
+  const [initAnalyticsData] = useState<null>(null);
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   return (

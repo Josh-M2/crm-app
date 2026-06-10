@@ -1,32 +1,38 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, isOrgUser } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
-  const { dealId, name, amount, ownerId, status } = body;
-  console.log(body);
+  const { dealId, selectedOrg, name, amount, ownerId, status } = body;
 
-  if (!dealId || !name || !status || !amount || !ownerId)
+  if (!dealId || !selectedOrg || !name || !status || !amount || !ownerId)
     return NextResponse.json({ error: "Missing field" }, { status: 400 });
 
-  //   const userId = await prismaInstance.user.findUnique({
-  //     where: { email },
-  //     select: {
-  //       id: true,
-  //     },
-  //   });
+  const auth = await getOrgMembership(req, selectedOrg);
 
-  //   if (!userId) {
-  //     return NextResponse.json({ error: "no user found" }, { status: 404 });
-  //   }
+  if ("response" in auth) return auth.response;
+
+  const ownerIsOrgUser = await isOrgUser(ownerId, selectedOrg);
+
+  if (!ownerIsOrgUser) {
+    return NextResponse.json({ error: "invalid owner" }, { status: 400 });
+  }
 
   const capitalizedStatus = status.toUpperCase();
+
+  const deal = await prismaInstance.deal.findFirst({
+    where: {
+      id: dealId,
+      organizationId: selectedOrg,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!deal)
+    return NextResponse.json({ error: "no deal found" }, { status: 404 });
 
   const updatedDeal = await prismaInstance.deal.update({
     where: {

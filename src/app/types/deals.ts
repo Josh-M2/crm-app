@@ -1,3 +1,10 @@
+import type {
+  Deal,
+  OrganizationUserRole,
+  Prisma,
+  User,
+} from "@prisma/client";
+
 export type ModalPurpose = "add" | "edit" | "";
 export type statusStrings = "pending" | "won" | "lost" | "";
 
@@ -6,16 +13,12 @@ export type StatusTypes = {
   label: string;
 };
 
-export type RawDeal = {
-  id: string;
-  name: string;
-  amount: string;
-  status: statusStrings;
-  owner: {
-    id: string;
-    name: string;
-  };
-  updatedAt: string;
+export type RawDeal = Omit<
+  Pick<Deal, "id" | "name" | "amount" | "status" | "updatedAt">,
+  "amount"
+> & {
+  amount: Prisma.Decimal | number | string;
+  owner: Pick<User, "id" | "name">;
 };
 
 export type DealFormTypes = {
@@ -64,6 +67,7 @@ export type UpdateDealTypes = {
   dealId: string;
   name: string;
   ownerId: string;
+  selectedOrg: string;
   status: statusStrings;
 };
 
@@ -78,11 +82,11 @@ export type FilteredUserWithRole = {
 };
 
 export type FilterOrgUsersDataTypes = {
-  role: string;
-  user: { name: string; id: string };
+  role: OrganizationUserRole;
+  user: Pick<User, "name" | "id">;
 };
 
 export type DeleteDealTypes = {
   id: string;
-  isAdmin: boolean;
+  selectedOrg: string;
 };

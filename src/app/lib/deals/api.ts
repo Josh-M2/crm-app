@@ -1,12 +1,12 @@
 import axiosInstance from "../axiosInstance";
-import { DealsApiResponse, RawDeal } from "@/app/types/deals";
+import { DealsApiResponse } from "@/app/types/deals";
 import { dealsDataFormatter, filterOrgUsersData } from "./helpers";
 
 export const InitDealsData = async (
   refData: string
 ): Promise<DealsApiResponse> => {
   console.log("functioning: InitDealsData");
-  const [_, email, selectedOrg] = refData.split("::");
+  const [, email, selectedOrg] = refData.split("::");
 
   const response = await axiosInstance.get("/deals/fetch-deals-data", {
     params: { email, selectedOrg },
@@ -25,7 +25,7 @@ export const fetchOrgUserData = async (refData: string) => {
   if (!refData) {
     return console.error("no refData refData");
   }
-  const [_, selectedOrg] = refData.split("::");
+  const [, selectedOrg] = refData.split("::");
 
   const response = await axiosInstance.get("/organization/fetch-org-users", {
     params: {

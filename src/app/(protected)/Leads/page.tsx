@@ -4,7 +4,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Input,
-  Link,
   Modal,
   ModalBody,
   ModalContent,
@@ -20,46 +19,80 @@ import {
   TableRow,
   useDisclosure,
 } from "@heroui/react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
-import {
-  Organization,
-  useOrganization,
-} from "@/app/context/OrganizationContext";
+import { Organization, useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import axiosInstance from "@/app/lib/axiosInstance";
 import useSWRMutation from "swr/mutation";
-import axios from "axios";
+import Image from "next/image";
+import type {
+  LeadCategory,
+  OrganizationUserRole,
+  User,
+} from "@prisma/client";
 
-// Dummy lead data
-const leadsData = [
-  {
-    id: "asdasdasd",
-    owner: "John Doe",
-    leadName: "Lead A",
-    assignedto: "Kathy",
-  },
-  {
-    id: "asdkh12",
-    owner: "Jane Smith",
-    leadName: "Lead B",
-    assignedto: "Kathy",
-  },
-  {
-    id: "asdasdasd3213",
-    owner: "John Doe",
-    leadName: "Lead C",
-    assignedto: "Me",
-  },
-  // ... more leads
-];
+type UserPreview = Pick<User, "id" | "name" | "email">;
+type LeadCategoryWithUsers = Pick<LeadCategory, "id" | "name"> & {
+  owner: UserPreview | null;
+  assignedTo: UserPreview | null;
+};
+type FormattedCategorizedLead = {
+  id: string;
+  leadName: string;
+  ownerId: string;
+  owner: string;
+  ownerEmail: string;
+  assignedtoId: string;
+  assignedto: string;
+  assignedtoEmail: string;
+};
+type OrgUserWithRole = {
+  role: OrganizationUserRole;
+  user: Pick<User, "id" | "name">;
+};
+type OrgUserOption = Pick<User, "id" | "name">;
+type FilteredLeadUsers = {
+  agentList: OrgUserOption[];
+  minerList: OrgUserOption[];
+};
+type CategorizedLeadsResponse = {
+  formatedcategorizedLeadsData: FormattedCategorizedLead[];
+  userRole: OrganizationUserRole;
+};
+type ApiErrorResponse = {
+  error?: string | { status?: number };
+};
+type LeadCategoryForm = {
+  name: string;
+  owner: string;
+  assignedTo: string;
+};
+type LeadCategoryFormError = {
+  nameError: string;
+  ownerError: string;
+  assignedToError: string;
+};
+type DeleteCategorizedLeadArg = {
+  id: string;
+  selectedOrg: string;
+};
+
+type LeadColumnKey = keyof Pick<
+  FormattedCategorizedLead,
+  "leadName" | "owner" | "assignedto"
+>;
+type TableColumnDefinition = {
+  key: LeadColumnKey | "actions";
+  label: string;
+};
 
 // Columns definition for the table
-const columns = [
+const columns: TableColumnDefinition[] = [
   {
     key: "leadName",
     label: "LEAD NAME",
@@ -78,28 +111,19 @@ const columns = [
   },
 ];
 
-export const animals = [
-  { key: "cat", label: "Cat" },
-  { key: "dog", label: "Dog" },
-  { key: "elephant", label: "Elephant" },
-  { key: "lion", label: "Lion" },
-  { key: "tiger", label: "Tiger" },
-  { key: "giraffe", label: "Giraffe" },
-  { key: "dolphin", label: "Dolphin" },
-  { key: "penguin", label: "Penguin" },
-  { key: "zebra", label: "Zebra" },
-  { key: "shark", label: "Shark" },
-  { key: "whale", label: "Whale" },
-  { key: "otter", label: "Otter" },
-  { key: "crocodile", label: "Crocodile" },
-];
-
-const handleFetchCategorizedLeadsData = async (refData: string) => {
+const handleFetchCategorizedLeadsData = async (
+  refData: string
+): Promise<CategorizedLeadsResponse | null> => {
   console.log("handleFetchCategorizedLeadsDataRefdata", refData);
-  if (!refData) return;
+  if (!refData) return null;
 
-  const [_, email, selectedOrg] = refData.split("::");
-  const respone = await axiosInstance.get(
+  const [, email, selectedOrg] = refData.split("::");
+  const respone = await axiosInstance.get<
+    ApiErrorResponse & {
+      categorizedLeads: LeadCategoryWithUsers[];
+      userRole: { role: OrganizationUserRole };
+    }
+  >(
     "/leads/manage-lead-category/fetch-organization-leads",
     {
       params: {
@@ -108,7 +132,7 @@ const handleFetchCategorizedLeadsData = async (refData: string) => {
       },
     }
   );
-  if (respone.data.error) throw new Error("error: ", respone.data.error);
+  if (respone.data.error) throw new Error(`error: ${respone.data.error}`);
   console.log(
     "handleFetchCategorizedLeadsData ",
     respone.data.categorizedLeads
@@ -116,9 +140,7 @@ const handleFetchCategorizedLeadsData = async (refData: string) => {
 
   console.log("handleFetchCategorizedLeadsData ", respone.data.userRole);
 
-  const formatedcategorizedLeadsData = formatLeadsData(
-    respone.data.categorizedLeads
-  );
+  const formatedcategorizedLeadsData = formatLeadsData(respone.data.categorizedLeads);
   console.log("formatedcategorizedLeadsData ", formatedcategorizedLeadsData);
   return {
     formatedcategorizedLeadsData: formatedcategorizedLeadsData,
@@ -126,9 +148,9 @@ const handleFetchCategorizedLeadsData = async (refData: string) => {
   };
 };
 
-const formatLeadsData = (apiData: []) => {
+const formatLeadsData = (apiData: LeadCategoryWithUsers[]) => {
   console.log("apiData: ", apiData);
-  return apiData.map((lead: any) => ({
+  return apiData.map((lead) => ({
     id: lead.id,
     leadName: lead.name,
 
@@ -142,11 +164,11 @@ const formatLeadsData = (apiData: []) => {
   }));
 };
 
-const formatOrgUserDataLeadsAgent = (apiData: any) => {
+const formatOrgUserDataLeadsAgent = (apiData: OrgUserWithRole[]) => {
   console.log("apiData:", apiData);
   console.log("filterName:", apiData[0]);
 
-  const formated = apiData.map((lead: any) => ({
+  const formated = apiData.map((lead) => ({
     id: lead.user.id,
     name: lead.user.name,
   }));
@@ -155,13 +177,13 @@ const formatOrgUserDataLeadsAgent = (apiData: any) => {
   return formated;
 };
 
-const filterLeadsData = (apiData: []) => {
+const filterLeadsData = (apiData: OrgUserWithRole[]): FilteredLeadUsers => {
   const minerList = apiData
     .slice()
-    .filter((lead: any) => lead.role === "MINER");
+    .filter((lead) => lead.role === "MINER");
   const agentList = apiData
     .slice()
-    .filter((lead: any) => lead.role === "AGENT");
+    .filter((lead) => lead.role === "AGENT");
   console.log("minerList: ", minerList);
   console.log("agentList: ", agentList);
 
@@ -171,25 +193,32 @@ const filterLeadsData = (apiData: []) => {
   console.log("formatedMinerList: ", formatedMinerList);
 
   return {
-    minerList: formatedAgentList ? formatedAgentList : [],
-    agentList: formatedMinerList ? formatedMinerList : [],
+    minerList: formatedMinerList ? formatedMinerList : [],
+    agentList: formatedAgentList ? formatedAgentList : [],
   };
 };
 
-const handleFetchOrgUserData = async (refData: string) => {
+const handleFetchOrgUserData = async (
+  refData: string
+): Promise<FilteredLeadUsers> => {
   if (!refData) {
-    return console.error("no refData refData");
+    return { agentList: [], minerList: [] };
   }
-  const [_, selectedOrg] = refData.split("::");
+  const [, selectedOrg] = refData.split("::");
 
-  const response = await axiosInstance.get("/organization/fetch-org-users", {
-    params: {
-      selectedOrg: selectedOrg,
-    },
-  });
+  const response = await axiosInstance.get<
+    ApiErrorResponse & { orgUser: OrgUserWithRole[] }
+  >(
+    "/organization/fetch-org-users",
+    {
+      params: {
+        selectedOrg: selectedOrg,
+      },
+    }
+  );
 
   if (response?.data.error) {
-    throw new Error(`Error: ${response.data.error.status}`);
+    throw new Error(`Error: ${response.data.error}`);
   }
 
   console.log("handleFetchOrgUserData123: ", response.data);
@@ -203,12 +232,12 @@ const handleFetchOrgUserData = async (refData: string) => {
 
 const sendRequestToDeleteCategorizedLead = async (
   url: string,
-  { arg }: { arg: any }
+  { arg }: { arg: DeleteCategorizedLeadArg }
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
+  if (response.data.error) throw new Error(`error: ${response.data.error}`);
   console.log("deletedData: ", response.data);
   return "ok";
 };
@@ -219,28 +248,18 @@ export default function LeadsPage() {
 
   const { data: session, status } = useSession();
 
-  //avoid fkcing hydration
-  const [initLeadsDataLoading, setInitLeadsDataLoading] =
-    useState<boolean>(true);
-
-  //to add types
-  const [initLeadsData, setInitLeadsData] = useState<any>(null);
-
   const { selectedOrg, organizations } = useOrganization();
-  const [selectedOrgData, setSelectedOrgData] = useState<any>();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedOwner, setSelectedOwner] = useState<string | null>(null);
+  const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const router = useRouter();
-  const pathname = usePathname();
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<LeadCategoryForm>({
     name: "",
     owner: "",
     assignedTo: "",
   });
 
-  const [error, setError] = useState<any>({
+  const [error, setError] = useState<LeadCategoryFormError>({
     nameError: "",
     ownerError: "",
     assignedToError: "",
@@ -261,35 +280,21 @@ export default function LeadsPage() {
     }
   };
 
-  // Handle delete action for a specific lead
-  const handleDeleteLead = (id: string) => {
-    // Implement the delete functionality here (e.g., remove lead from list)
-    console.log("Deleting lead with ID:", id);
-  };
-
   // Utility function to get values from each row based on the column key
-  const getKeyValue = (item: any, columnKey: string) => {
-    // console.log("item: ", item);
-    // console.log("columnKey: ", columnKey);
-    // console.log("session?.user?.email ", session?.user?.email);
+  const getKeyValue = (item: FormattedCategorizedLead, columnKey: LeadColumnKey) => {
+    const value = item[columnKey];
+    const isAssignedToCurrentUser =
+      columnKey === "assignedto" && item.assignedtoEmail === session?.user?.email;
 
-    return (
-      `${item[columnKey]} ${
-        columnKey === "assignedto" &&
-        item.assignedtoEmail === session?.user?.email
-          ? "(me)"
-          : ""
-      }` || "-"
-    ); // Return value of the lead property or "-" if not available
+    return `${value}${isAssignedToCurrentUser ? " (me)" : ""}` || "-";
   };
 
   const handleAddCategorizedLead = async (
     selectedOrg: string,
-    form: any,
-    isAdmin: boolean,
+    form: LeadCategoryForm,
+    canAssignUser: boolean,
     onClose: () => void
   ) => {
-    console.log("isAdmin: ", isAdmin);
     console.log("handleAddCategorizedLead: ", selectedOrg);
 
     console.log("handleAddCategorizedLead: ", form);
@@ -302,14 +307,11 @@ export default function LeadsPage() {
         ownerId: form.owner,
 
         //if user is not admin automatically set the assigned to the current miner who create the organized lead
-        email: !isAdmin ? session?.user?.email : form.assignedTo,
-
-        //for dynamic sht
-        isAdmin,
+        email: canAssignUser ? form.assignedTo : session?.user?.email,
       }
     );
 
-    if (response.data.error) throw new Error("error: ", response.data.error);
+    if (response.data.error) throw new Error(`error: ${response.data.error}`);
 
     console.log(
       "handleAddCategorizedLead aded result: ",
@@ -334,8 +336,8 @@ export default function LeadsPage() {
   };
 
   useEffect(() => {
-    console.log("form: ", form.leadName);
-  }, [form.leadName]);
+    console.log("form: ", form.name);
+  }, [form.name]);
 
   //should fetch datas of selected Organization
   useEffect(() => {
@@ -347,7 +349,7 @@ export default function LeadsPage() {
       //return a copy of selected organization
       const orgData = organizations
         .slice()
-        .filter((org: any) => org.organization.id === selectedOrg);
+        .filter((org) => org.organization.id === selectedOrg);
       if (orgData) {
         console.log("orgData: ", orgData[0]);
 
@@ -367,21 +369,12 @@ export default function LeadsPage() {
 
   const {
     data: categorizedLeads,
-    error: errorSwr,
     isLoading: isLoadingcategorizedLeads,
-    mutate: mutateCategorizedLeads,
   } = useSWR(leadsKey ? leadsKey : null, handleFetchCategorizedLeadsData, {
     revalidateOnMount: true,
     dedupingInterval: 60000,
     revalidateOnFocus: false,
   });
-
-  useEffect(() => {
-    if (categorizedLeads) {
-      console.log("categorizedLeads: ", categorizedLeads);
-      setInitLeadsData(categorizedLeads);
-    }
-  }, [categorizedLeads]);
 
   const manageOrgUserKey =
     session?.user?.email && selectedOrg
@@ -390,9 +383,6 @@ export default function LeadsPage() {
 
   const {
     data: manageOrgUserData,
-    error: errorOrgUser,
-    isLoading: isLoadingOrgUserData = true,
-    mutate: mutateOrgUser,
   } = useSWR(
     manageOrgUserKey ? manageOrgUserKey : null,
     handleFetchOrgUserData,
@@ -407,9 +397,7 @@ export default function LeadsPage() {
   );
 
   const {
-    data: deletedData,
     trigger: triggerDeleteCategorizedLead,
-    isMutating,
   } = useSWRMutation(
     "/leads/manage-lead-category/delete-categorized-lead",
     sendRequestToDeleteCategorizedLead
@@ -442,7 +430,7 @@ export default function LeadsPage() {
               {/* Leads title and Add new lead button */}
               <div className="flex justify-between mb-4">
                 <h3 className="text-xl font-bold">
-                  Leads for {selectedOwner || "All Owners"}
+                  Leads for All Owners
                 </h3>
                 <Button color="primary" onPress={onAddOpen}>
                   Add New Owner
@@ -466,7 +454,7 @@ export default function LeadsPage() {
                     <TableBody
                       items={categorizedLeads.formatedcategorizedLeadsData}
                     >
-                      {(item: any) => (
+                      {(item) => (
                         <TableRow key={item.id}>
                           {columns.map((column) => (
                             <TableCell key={column.key} className="text-center">
@@ -490,9 +478,7 @@ export default function LeadsPage() {
                                       onPress={() =>
                                         triggerDeleteCategorizedLead({
                                           id: item.id,
-                                          isAdmin:
-                                            categorizedLeads?.userRole ===
-                                            "ADMIN",
+                                          selectedOrg,
                                         })
                                       }
                                     >
@@ -501,7 +487,7 @@ export default function LeadsPage() {
                                   )}
                                 </div>
                               ) : (
-                                getKeyValue(item, column.key)
+                                getKeyValue(item, column.key as LeadColumnKey)
                               )}
                             </TableCell>
                           ))}
@@ -550,16 +536,18 @@ export default function LeadsPage() {
                       id="name"
                       name="name"
                       color={error.nameError ? "danger" : "default"}
-                      value={form.leadName}
+                      value={form.name}
                       onChange={handleChange}
                     />
                   </div>
                   {error.nameError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.nameError}
                     </label>
@@ -573,7 +561,7 @@ export default function LeadsPage() {
                       selectedKeys={[form.owner]}
                       onChange={handleChange}
                     >
-                      {manageOrgUserData?.agentList?.map((agent: any) => (
+                      {(manageOrgUserData?.agentList ?? []).map((agent) => (
                         <SelectItem key={agent.id}>{agent.name}</SelectItem>
                       ))}
                     </Select>
@@ -582,22 +570,22 @@ export default function LeadsPage() {
                   <div>
                     <Select
                       isDisabled={
-                        categorizedLeads?.userRole?.role !== "ADMIN" &&
-                        categorizedLeads?.userRole?.role === "MINER"
+                        categorizedLeads?.userRole !== "ADMIN" &&
+                        categorizedLeads?.userRole === "MINER"
                       }
                       className="max-w-xs"
                       label="Assigned to"
                       name="assignedTo"
                       selectedKeys={[form.assignedTo]}
                       placeholder={
-                        categorizedLeads?.userRole?.role !== "ADMIN" &&
-                        categorizedLeads?.userRole?.role === "MINER"
+                        categorizedLeads?.userRole !== "ADMIN" &&
+                        categorizedLeads?.userRole === "MINER"
                           ? `${session?.user?.name} (Me)`
                           : ""
                       }
                       onChange={handleChange}
                     >
-                      {manageOrgUserData?.minerList?.map((miner: any) => (
+                      {(manageOrgUserData?.minerList ?? []).map((miner) => (
                         <SelectItem key={miner.id}>{miner.name}</SelectItem>
                       ))}
                     </Select>

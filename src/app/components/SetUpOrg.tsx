@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button, Input, Form, Alert } from "@heroui/react";
 import { usePathname, useRouter } from "next/navigation";
 import { generateUniqueName } from "@/app/lib/orgCodeGenerator";
 import axiosInstance from "@/app/lib/axiosInstance";
-import { Session } from "inspector/promises";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "../context/OrganizationContext";
 import { mutate } from "swr";
 
 export default function SetUpOrg() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [organizationName, setOrganizationName] = useState("");
   const { selectedOrg } = useOrganization();
   const [orgCode, setOrgCode] = useState("");
@@ -42,7 +41,7 @@ export default function SetUpOrg() {
     console.log("generated code: ", generatedCode);
 
     try {
-      const response = await axiosInstance.post("/organization/create-org", {
+      await axiosInstance.post("/organization/create-org", {
         email: session?.user?.email,
         organizationName: organizationName,
         organizationCode: generatedCode,
@@ -63,7 +62,7 @@ export default function SetUpOrg() {
           router.push("/dashboard");
         }
       }, 1000);
-    } catch (error) {
+    } catch {
       setErrorMessage("Something went wrong while creating the organization.");
     }
   };
@@ -93,7 +92,7 @@ export default function SetUpOrg() {
         setIsJoining(false);
         //router.push("/dashboard"); // Redirect to dashboard after success
       }, 1000);
-    } catch (error) {
+    } catch {
       setErrorMessage("Failed to request to join to the organization.");
     }
   };

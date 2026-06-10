@@ -1,29 +1,30 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
-  const { id, isAdmin } = body;
+  const { id, selectedOrg } = body;
 
-  if (!id)
+  if (!id || !selectedOrg)
     return NextResponse.json({ error: "Missing field" }, { status: 400 });
 
-  if (!isAdmin)
-    return NextResponse.json({ error: "unauthorized access" }, { status: 401 });
+  const auth = await getOrgMembership(req, selectedOrg);
 
-  const deletedLead = await prismaInstance.lead.delete({
+  if ("response" in auth) return auth.response;
+
+  const roleError = requireOrgRole(auth.membership.role, ["ADMIN"]);
+
+  if (roleError) return roleError;
+
+  const deletedLead = await prismaInstance.lead.deleteMany({
     where: {
-      id: id,
+      id,
+      organizationId: selectedOrg,
     },
   });
 
-  if (!deletedLead)
+  if (deletedLead.count === 0)
     return NextResponse.json(
       { error: "no deleted data found" },
       { status: 404 }

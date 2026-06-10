@@ -60,7 +60,9 @@ export default function TestimonialSection() {
               ))}
             </div>
 
-            <p className="text-gray-600 mb-6">"{testimonial.message}"</p>
+            <p className="text-gray-600 mb-6">
+              &quot;{testimonial.message}&quot;
+            </p>
 
             <UserAvatar
               description={testimonial.title}

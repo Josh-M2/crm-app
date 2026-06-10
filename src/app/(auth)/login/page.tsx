@@ -3,23 +3,31 @@
 import { Button, Link } from "@heroui/react";
 import NavBar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { inputChange } from "@/app/lib/inputChange";
 import { validateEmail, validatePassword } from "@/app/lib/validators";
-import axiosInstance from "@/app/lib/axiosInstance";
 import { signIn, useSession } from "next-auth/react";
 import { LoginFormTypes } from "@/app/types/auth";
 import { ErrorLoginFormTypes } from "@/app/types/auth";
+import Image from "next/image";
 
 const loginErrorMap: Record<string, { fieldName?: string; message: string }> = {
   MissingInputs: { message: "Missing email and password" },
   UserNotFound: { fieldName: "emailError", message: "Email not found" },
   WrongPassword: { fieldName: "passwordError", message: "Incorrect password" },
 };
+type AuthRequestError = {
+  status?: number;
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+};
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const componentName = useMemo(() => "login", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
   const [form, setForm] = useState<LoginFormTypes>({
@@ -31,12 +39,7 @@ export default function LoginPage() {
     passwordError: "",
   });
   const [loading, setIsLoading] = useState<boolean>(false);
-  const path = usePathname();
   const router = useRouter();
-
-  const navigate = () => {
-    router.push("/dashboard");
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     inputChange({ e, setForm, setError, form, componentName });
@@ -77,12 +80,13 @@ export default function LoginPage() {
             [loginErrorMessage.fieldName as string]: loginErrorMessage.message,
           }));
         }
-      } catch (error: any) {
-        if (error.status === 409) {
-          console.log("error message", error.response.data.error);
+      } catch (error: unknown) {
+        const requestError = error as AuthRequestError;
+        if (requestError.status === 409) {
+          console.log("error message", requestError.response?.data?.error);
           setError((prev) => ({
             ...prev,
-            emailError: error.response.data.error,
+            emailError: requestError.response?.data?.error ?? "Login failed.",
           }));
           setIsLoading(false);
           return;
@@ -133,10 +137,12 @@ export default function LoginPage() {
             </div>
             {error.emailError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.emailError}
               </label>
@@ -160,10 +166,12 @@ export default function LoginPage() {
             </div>
             {error.passwordError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.passwordError}
               </label>
@@ -179,7 +187,7 @@ export default function LoginPage() {
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-600">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/signup" className="text-primary hover:underline">
               Signup
             </Link>

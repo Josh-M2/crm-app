@@ -1,16 +1,19 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getCurrentUser } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  const auth = await getCurrentUser(req);
 
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if ("response" in auth) return auth.response;
 
   const body = await req.json();
 
-  const { email, organizationCode } = body;
+  const { organizationCode } = body;
+
+  if (!organizationCode) {
+    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+  }
 
   const orgID = await prismaInstance.organization.findUnique({
     where: {
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
 
   const inviteData = await prismaInstance.invite.create({
     data: {
-      email,
+      email: auth.user.email,
       code: organizationCode,
       organizationId: orgID.id,
     },

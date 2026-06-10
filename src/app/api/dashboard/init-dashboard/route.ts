@@ -1,49 +1,20 @@
-import { getToken } from "next-auth/jwt";
 import { NextResponse, NextRequest } from "next/server";
 import prismaInstance from "@/app/lib/prismaInstance";
-import {
-  differenceInMinutes,
-  differenceInHours,
-  formatDistanceToNow,
-} from "date-fns";
+import { getOrgMembership } from "@/app/lib/routeAuth";
+import { formatDistanceToNow } from "date-fns";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-    if (!token)
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
-    console.log("params", req.nextUrl.searchParams);
     const body = req.nextUrl.searchParams;
-    const email = body.get("email");
     const selectedOrg = body.get("selectedOrg");
-    console.log("selectedOrg: ", selectedOrg);
-    console.log("email: ", email);
 
-    if (!email || !selectedOrg) {
+    if (!selectedOrg) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
-    const userId = await prismaInstance.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
+    const auth = await getOrgMembership(req, selectedOrg);
 
-    if (!userId) {
-      return NextResponse.json({ error: "no user found" }, { status: 204 });
-    }
-
-    // const organizationId = await prismaInstance.organizationUser.findMany({
-    //   where: { userId: userId.id },
-    //   select: { id: true },
-    // });
-
-    // if (!organizationId) {
-    //   return NextResponse.json({ error: "no org found" }, { status: 204 });
-    // }
-
-    console.log("organizationId", selectedOrg);
+    if ("response" in auth) return auth.response;
 
     const [
       leadCount,
@@ -80,7 +51,6 @@ export async function GET(req: NextRequest) {
         take: 8,
       }),
     ]);
-    404;
 
     if (
       leadCount === undefined ||
@@ -102,22 +72,12 @@ export async function GET(req: NextRequest) {
       ...activity,
       timeAgo: formatDistanceToNow(activity.date, { addSuffix: true }),
     }));
-
-    console.log("leadCount", leadCount);
-
-    console.log("revenue", revenue);
-
-    console.log("conversionRate", conversionRate);
-
-    console.log("activeDeals", activeDeals);
-
     if (
       leadCount !== undefined &&
       revenue !== undefined &&
       conversionRate !== undefined &&
       activeDeals !== undefined
     ) {
-      console.log("w3w");
       return NextResponse.json(
         {
           data: {
@@ -138,9 +98,7 @@ export async function GET(req: NextRequest) {
         { status: 500 }
       );
     }
-
-    //continue logic shits here
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

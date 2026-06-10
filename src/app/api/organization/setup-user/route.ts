@@ -1,41 +1,49 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
+const validRoles = ["AGENT", "MINER", "ADMIN", "DELETE"] as const;
+
 export async function POST(req: NextRequest) {
-  const token = getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
-  const { role, orgUserId } = body;
+  const { role, orgUserId, selectedOrg } = body;
 
-  if (!role || !orgUserId) {
+  if (!role || !orgUserId || !selectedOrg) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  console.log("orgUserId: ", orgUserId);
-  console.log("role", role);
+  if (!validRoles.includes(role)) {
+    return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+
+  const auth = await getOrgMembership(req, selectedOrg);
+
+  if ("response" in auth) return auth.response;
+
+  const roleError = requireOrgRole(auth.membership.role, ["ADMIN"]);
+
+  if (roleError) return roleError;
 
   if (role === "DELETE") {
-    const deleteUserFromOrg = await prismaInstance.organizationUser.delete({
+    const deleteUserFromOrg = await prismaInstance.organizationUser.deleteMany({
       where: {
         id: orgUserId,
+        organizationId: selectedOrg,
       },
     });
-    if (!deleteUserFromOrg)
+    if (deleteUserFromOrg.count === 0)
       return NextResponse.json({ error: "no user found " }, { status: 404 });
   } else {
-    const updatedUserRole = await prismaInstance.organizationUser.update({
+    const updatedUserRole = await prismaInstance.organizationUser.updateMany({
       where: {
         id: orgUserId,
+        organizationId: selectedOrg,
       },
       data: {
         role,
       },
     });
-    if (!updatedUserRole)
+    if (updatedUserRole.count === 0)
       return NextResponse.json({ error: "no user found " }, { status: 404 });
   }
 

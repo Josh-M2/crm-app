@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const { selectedOrg, organizations, isLoading } = useOrganization();
   const [inputOrgNameToDelete, setInputOrgNameToDelete] = useState<string>("");
@@ -49,7 +49,7 @@ export default function SettingsPage() {
       //return a copy of selected organization
       const orgData = organizations
         .slice()
-        .filter((org: any) => org.organization.id === selectedOrg);
+        .filter((org) => org.organization.id === selectedOrg);
       if (orgData) {
         console.log("orgData: ", orgData[0]);
 
@@ -64,13 +64,14 @@ export default function SettingsPage() {
 
   //to make types
   //mockinshit
-  const handleDeleteOrg = (data: any, onClose: any) => {
+  const handleDeleteOrg = (data: Organization | undefined, onClose: () => void) => {
     if (selectedOrgData?.role !== "ADMIN") return;
+    if (!data) return;
 
     console.log("delete org: ", data);
-    if (data.name === inputOrgNameToDelete) {
+    if (data.organization.name === inputOrgNameToDelete) {
       setTimeout(() => {
-        console.log("deleted: ", data.name);
+        console.log("deleted: ", data.organization.name);
         onClose();
         //navigate
       }, 1000);
@@ -166,8 +167,8 @@ export default function SettingsPage() {
               </ModalHeader>
               <ModalBody>
                 <p>
-                  To delete this organization type "
-                  <strong>{selectedOrgData?.organization.name}</strong>" below.
+                  To delete this organization type &quot;
+                  <strong>{selectedOrgData?.organization.name}</strong>&quot; below.
                 </p>
 
                 <Input

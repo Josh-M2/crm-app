@@ -1,36 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
 import prismaInstance from "@/app/lib/prismaInstance";
-import { user } from "@heroui/react";
+import { getCurrentUser } from "@/app/lib/routeAuth";
 
 export async function GET(req: NextRequest) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) {
-      return NextResponse.json({ error: "unauthorized", status: 401 });
-    }
-    const body = req.nextUrl.searchParams;
-    const email = body.get("email");
-    console.log("email: ", email);
-    console.log("body: ", email);
+    const auth = await getCurrentUser(req);
 
-    if (!email) {
-      return NextResponse.json({ error: "Missing emaol" }, { status: 400 });
-    }
-
-    const userID = await prismaInstance.user.findUnique({
-      where: { email },
-      select: { id: true },
-    });
-
-    if (!userID) {
-      return NextResponse.json({ error: "no userid found" }, { status: 404 });
-    }
+    if ("response" in auth) return auth.response;
 
     const userWithOrganizations =
       await prismaInstance.organizationUser.findMany({
-        where: { userId: userID.id },
+        where: { userId: auth.user.id },
         select: {
           role: true,
           organization: true,
@@ -43,35 +23,6 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
-
-    console.log("userWithOrganizations, ", userWithOrganizations);
-
-    // return NextResponse.json({ success: true }, { status: 200 });
-
-    // const userWithOrg = await prisma.user.findUnique({
-    //   where: { email },
-    //   include: {
-    //     ownedOrganizations: true,
-    //     organizations: {
-    //       include: {
-    //         organization: true,
-    //       },
-    //     },
-    //   },
-    // });
-
-    // if (!userWithOrg) {
-    //   return NextResponse.json({ error: "User not found" }, { status: 404 });
-    // }
-    // console.log("user:", userWithOrg);
-
-    // const owned = userWithOrg.ownedOrganizations;
-    // const notOwned = userWithOrg.organizations
-    //   .filter((orgUser) => orgUser.organization.ownerId !== userWithOrg.id)
-    //   .map((orgUser) => orgUser.organization);
-
-    // if (owned) console.log("owned: ", owned);
-    // if (notOwned) console.log("notOwned: ", notOwned);
 
     return NextResponse.json({ userWithOrganizations }, { status: 200 });
   } catch (error) {

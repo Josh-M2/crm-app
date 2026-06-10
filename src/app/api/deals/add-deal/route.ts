@@ -1,36 +1,26 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, isOrgUser } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
   const { selectedOrg, name, amount, status, userid } = body;
-  console.log("body: ", body);
 
   if (!selectedOrg || !name || !amount || !status || !userid) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  //   //if not admin logic
-  //   const userId = await prismaInstance.user.findUnique({
-  //     where: {
-  //       email,
-  //     },
-  //     select: {
-  //       id: true,
-  //     },
-  //   });
+  const auth = await getOrgMembership(req, selectedOrg);
 
-  //   if (!userId) {
-  //     return NextResponse.json({ error: "no user found" }, { status: 404 });
-  //   }
+  if ("response" in auth) return auth.response;
+
+  const ownerIsOrgUser = await isOrgUser(userid, selectedOrg);
+
+  if (!ownerIsOrgUser) {
+    return NextResponse.json({ error: "invalid owner" }, { status: 400 });
+  }
+
   const capitalizedStatus = status.toUpperCase();
-  console.log("capitalizedStatus", capitalizedStatus);
 
   const addedCategorizedLead = await prismaInstance.deal.create({
     data: {

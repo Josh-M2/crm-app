@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     console.log("signup body: ", body);
-    const { name, email, password, repassword } = body;
+    const { name, email, password } = body;
 
     if (!email || !password) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });

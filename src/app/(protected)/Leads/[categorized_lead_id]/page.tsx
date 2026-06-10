@@ -1,7 +1,6 @@
 "use client";
 
 import React, { use, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation"; // Using useSearchParams
 import {
   Button,
   Input,
@@ -28,50 +27,57 @@ import { useOrganization } from "@/app/context/OrganizationContext";
 import axiosInstance from "@/app/lib/axiosInstance";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWRMutation from "swr/mutation";
+import Image from "next/image";
+import type {
+  Lead as PrismaLead,
+  LeadStatus,
+  OrganizationUserRole,
+} from "@prisma/client";
 
-type Lead = {
+type LeadRow = {
   id: string;
   name: string;
   company: string;
   email: string;
-  status: "New" | "In Progress" | "Converted" | "Contacted";
+  status: LeadStatus;
   lastInteraction: string;
 };
 
-const dummyLeads: Lead[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    company: "Tech Corp",
-    email: "john.doe@example.com",
-    status: "New",
-    lastInteraction: "2025-04-25",
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    company: "Innovate LLC",
-    email: "jane.smith@example.com",
-    status: "In Progress",
-    lastInteraction: "2025-04-23",
-  },
-  {
-    id: "3",
-    name: "Alice Johnson",
-    company: "Growth Inc.",
-    email: "alice.johnson@example.com",
-    status: "Converted",
-    lastInteraction: "2025-04-20",
-  },
-  {
-    id: "4",
-    name: "Alice Johnson",
-    company: "Growth Inc.",
-    email: "alice.johnson@example.com",
-    status: "Contacted",
-    lastInteraction: "2025-04-20",
-  },
-];
+type LeadForm = {
+  id: string;
+  name: string;
+  company: string;
+  email: string;
+  status: LeadStatus;
+};
+
+type LeadFormError = {
+  nameError: string;
+  companyError: string;
+  emailError: string;
+  statusError: string;
+};
+
+type LeadMutationArg = {
+  organizationId: string | null;
+  categoryId?: string;
+  leadId?: string;
+  name: string;
+  company: string;
+  leadEmail: string;
+  status: LeadStatus;
+};
+
+type DeleteLeadArg = {
+  id: string;
+  selectedOrg: string | null;
+};
+
+type LeadListApiResponse = {
+  leadList: PrismaLead[];
+  userRole: { role: OrganizationUserRole };
+  error?: string;
+};
 
 const columns = [
   {
@@ -100,7 +106,7 @@ const columns = [
   },
 ];
 
-export const leadStatus = [
+const leadStatus = [
   { key: "new", label: "New" },
   { key: "contacted", label: "Contacted" },
   { key: "in_progress", label: "In Progress" },
@@ -116,24 +122,27 @@ const capitalizeStatus = (status: string) => {
   return status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
 };
 
-const handleFormatLeadList = (apiData: any[]) => {
+const handleFormatLeadList = (apiData: PrismaLead[]): LeadRow[] => {
   return apiData.map((lead) => ({
     id: lead.id,
     name: lead.name,
     company: lead.company,
     email: lead.email,
-    status: capitalizeStatus(lead.status),
-    lastInteraction: lead.lastInteraction.split("T")[0],
+    status: lead.status,
+    lastInteraction:
+      lead.lastInteraction instanceof Date
+        ? lead.lastInteraction.toISOString().split("T")[0]
+        : String(lead.lastInteraction).split("T")[0],
   }));
 };
 
 const handleFecthLeadsList = async (refData: string) => {
   console.log("handleFetchCategorizedLeadsDataRefdata", refData);
-  if (!refData) return;
+  if (!refData) return null;
 
-  const [_, email, selectedOrg, categorized_lead_id] = refData.split("::");
+  const [, email, selectedOrg, categorized_lead_id] = refData.split("::");
 
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<LeadListApiResponse>(
     "/leads/manage-lead-list/fetch-lead-list",
     {
       params: {
@@ -143,7 +152,7 @@ const handleFecthLeadsList = async (refData: string) => {
       },
     }
   );
-  if (response.data.error) throw new Error("error: ", response.data.error);
+  if (response.data.error) throw new Error(`error: ${response.data.error}`);
 
   console.log("handleFecthLeadsListData: ", response.data.leadList);
   const formatedLeads = handleFormatLeadList(response.data.leadList);
@@ -155,32 +164,38 @@ const handleFecthLeadsList = async (refData: string) => {
   };
 };
 
-const sendRequestToCreateLead = async (url: string, { arg }: { arg: any }) => {
+const sendRequestToCreateLead = async (
+  url: string,
+  { arg }: { arg: LeadMutationArg }
+) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
+  if (response.data.error) throw new Error(`error: ${response.data.error}`);
   console.log("addeddate: ", response.data);
   return "ok";
 };
 
-const sendRequestToUpdateLead = async (url: string, { arg }: { arg: any }) => {
+const sendRequestToUpdateLead = async (
+  url: string,
+  { arg }: { arg: LeadMutationArg }
+) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
-  console.log("addeddate: ", response.data);
+  if (response.data.error) throw new Error(`error: ${response.data.error}`);
+  console.log("deletedData: ", response.data);
   return "ok";
 };
 
 const sendRequestToDeleteCategorizedLead = async (
   url: string,
-  { arg }: { arg: any }
+  { arg }: { arg: DeleteLeadArg }
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
-  if (response.data.error) throw new Error("error: ", response.data.error);
+  if (response.data.error) throw new Error(`error: ${response.data.error}`);
   console.log("deletedData: ", response.data);
   return "ok";
 };
@@ -190,14 +205,13 @@ export default function EditLeadsPage({
   searchParams,
 }: ProductPageProps) {
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const { selectedOrg } = useOrganization();
-
-  const [leads, setLeads] = useState<Lead[]>(dummyLeads);
 
   const query = use(searchParams);
   const { categorized_lead_id } = use(params);
   const leadName = query.leadName;
+  const leadTitle = typeof leadName === "string" ? leadName : "";
 
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
@@ -213,7 +227,7 @@ export default function EditLeadsPage({
     onOpenChange: onEditOpenChange,
   } = useDisclosure();
 
-  const [form, setForm] = useState<any>({
+  const [form, setForm] = useState<LeadForm>({
     id: "",
     name: "",
     company: "",
@@ -221,7 +235,7 @@ export default function EditLeadsPage({
     status: "NEW",
   });
 
-  const [error, setError] = useState<any>({
+  const [error, setError] = useState<LeadFormError>({
     nameError: "",
     companyError: "",
     emailError: "",
@@ -236,10 +250,6 @@ export default function EditLeadsPage({
     inputChange({ e, setForm, setError, form });
   };
 
-  if (!categorized_lead_id || !leadName) {
-    return <div>Error: No owner found in the query parameters.</div>;
-  }
-
   const listOfLeadsKey =
     session?.user?.email && selectedOrg
       ? `fetch-leads-list::${session.user.email}::${selectedOrg}::${categorized_lead_id}`
@@ -247,9 +257,7 @@ export default function EditLeadsPage({
 
   const {
     data: listOfLeads,
-    error: errorListOfLeads,
     isLoading: isLoadingListOfLeads,
-    mutate: mutateListOfLeads,
   } = useSWR(listOfLeadsKey ? listOfLeadsKey : null, handleFecthLeadsList, {
     revalidateOnMount: true,
     dedupingInterval: 60000,
@@ -260,36 +268,30 @@ export default function EditLeadsPage({
     if (listOfLeads) console.log("listOfLeads: ", listOfLeads);
   }, [listOfLeads]);
 
-  // Filter the leads based on the owner query param
-  const leadsForOwner = leads;
-
-  const handleEditLead = (form: any) => {
+  const handleEditLead = (form: LeadRow) => {
     // Navigate to the edit page for this lead ID
     console.log("form: ", form);
     setForm(form);
     onEditOpen();
   };
 
-  const handleDeleteLead = (id: string, isAdmin: boolean) => {
+  const handleDeleteLead = (id: string) => {
     triggerDeleteLead({
       id,
-      isAdmin,
+      selectedOrg,
     });
   };
 
   const {
-    data: creatednewLead,
     trigger: triggerCreateNewLead,
-    isMutating: ismutatingCreateNewLead,
   } = useSWRMutation(
     "/leads/manage-lead-list/add-lead-item",
     sendRequestToCreateLead
   );
 
-  const handleCreateNewLead = async (form: any) => {
+  const handleCreateNewLead = async (form: LeadForm) => {
     await triggerCreateNewLead({
       organizationId: selectedOrg, //organization ID
-      email: session?.user?.email,
       categoryId: categorized_lead_id,
 
       name: form.name,
@@ -298,22 +300,19 @@ export default function EditLeadsPage({
       status: form.status,
     });
 
-    setForm({ name: "", company: "", email: "", status: "NEW" });
+    setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
   };
 
   const {
-    data: updateLeadData,
     trigger: triggerUpdateLeadData,
-    isMutating: isMutatingUpdateLeadData,
   } = useSWRMutation(
     "/leads/manage-lead-list/update-lead-item",
     sendRequestToUpdateLead
   );
 
-  const handleUpdateLead = async (form: any, onClose: () => void) => {
+  const handleUpdateLead = async (form: LeadForm, onClose: () => void) => {
     await triggerUpdateLeadData({
       organizationId: selectedOrg, //organization ID
-      email: session?.user?.email,
       categoryId: categorized_lead_id,
 
       leadId: form.id,
@@ -327,13 +326,15 @@ export default function EditLeadsPage({
   };
 
   const {
-    data: deletedLead,
     trigger: triggerDeleteLead,
-    isMutating: isMutatingDeleteLead,
   } = useSWRMutation(
     "/leads/manage-lead-list/delete-lead",
     sendRequestToDeleteCategorizedLead
   );
+
+  if (!categorized_lead_id || !leadTitle) {
+    return <div>Error: No owner found in the query parameters.</div>;
+  }
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -357,10 +358,10 @@ export default function EditLeadsPage({
         <div className="flex justify-between mb-4">
           <div>
             <h2 className="text-3xl font-bold mb-4 ml-10">
-              Leads for {leadName}
+              Leads for {leadTitle}
             </h2>
             <p className="text-lg mb-8 ml-10">
-              Manage and edit the leads of {leadName}.
+              Manage and edit the leads of {leadTitle}.
             </p>
           </div>
           <div className="flex items-end">
@@ -387,7 +388,7 @@ export default function EditLeadsPage({
               {(lead) => (
                 <TableRow key={lead.id}>
                   {columns.map((column) => (
-                    <TableCell className="text-center">
+                    <TableCell key={column.key} className="text-center">
                       {column.key === "name" ? (
                         lead.name
                       ) : column.key === "company" ? (
@@ -397,18 +398,18 @@ export default function EditLeadsPage({
                       ) : column.key === "status" ? (
                         <span
                           className={`px-3 py-1 rounded-full ${
-                            lead.status === "New"
+                            lead.status === "NEW"
                               ? "bg-blue-100 text-blue-700"
-                              : lead.status === "In_progress"
+                              : lead.status === "IN_PROGRESS"
                               ? "bg-yellow-100 text-yellow-700"
-                              : lead.status === "Converted"
+                              : lead.status === "CONVERTED"
                               ? "bg-green-100 text-green-700"
                               : "bg-gray-100 text-gray-700"
                           }`}
                         >
-                          {lead.status === "In_progress"
+                          {lead.status === "IN_PROGRESS"
                             ? "In Progress"
-                            : lead.status}
+                            : capitalizeStatus(lead.status)}
                         </span>
                       ) : column.key === "lastInteraction" ? (
                         lead.lastInteraction
@@ -426,12 +427,7 @@ export default function EditLeadsPage({
                               variant="light"
                               size="sm"
                               color="danger"
-                              onPress={() =>
-                                handleDeleteLead(
-                                  lead.id,
-                                  listOfLeads.userRole === "ADMIN"
-                                )
-                              }
+                              onPress={() => handleDeleteLead(lead.id)}
                             >
                               Delete
                             </Button>
@@ -485,10 +481,12 @@ export default function EditLeadsPage({
                   </div>
                   {error.nameError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.nameError}
                     </label>
@@ -508,10 +506,12 @@ export default function EditLeadsPage({
 
                   {error.companyError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.companyError}
                     </label>
@@ -531,10 +531,12 @@ export default function EditLeadsPage({
                   </div>
                   {error.emailError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.emailError}
                     </label>
@@ -582,10 +584,12 @@ export default function EditLeadsPage({
                   </div>
                   {error.nameError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.nameError}
                     </label>
@@ -605,10 +609,12 @@ export default function EditLeadsPage({
 
                   {error.companyError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.companyError}
                     </label>
@@ -628,10 +634,12 @@ export default function EditLeadsPage({
                   </div>
                   {error.emailError && (
                     <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                      <img
+                      <Image
                         src={errorImageURL}
                         alt="error exclamatory"
-                        className="max-w-[5%] mr-1"
+                        width={12}
+                        height={12}
+                        className="mr-1"
                       />
                       {error.emailError}
                     </label>
@@ -646,7 +654,7 @@ export default function EditLeadsPage({
                       selectedKeys={[form.status.toLowerCase()]}
                       onChange={handleChange}
                     >
-                      {leadStatus.map((status: any) => (
+                      {leadStatus.map((status) => (
                         <SelectItem key={status.key}>{status.label}</SelectItem>
                       ))}
                     </Select>
