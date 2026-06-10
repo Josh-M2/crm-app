@@ -13,7 +13,7 @@ import UserAvatar from "@/app/components/UserAvatar";
 import { useEffect, useRef, useState } from "react";
 import { redirect, usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "@/app/lib/axiosInstance";
 import { useOrganization } from "@/app/context/OrganizationContext";
 import { mutate, unstable_serialize } from "swr";
 import { cache } from "swr/_internal";

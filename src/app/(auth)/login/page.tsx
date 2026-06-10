@@ -1,24 +1,16 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Link } from "@heroui/react";
 import NavBar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import { useRouter, usePathname } from "next/navigation";
-import { ReactHTMLElement, useEffect, useMemo, useState } from "react";
-import { inputChange } from "@/lib/inputChange";
-import { validateEmail, validatePassword } from "@/lib/validators";
-import axiosInstance from "@/lib/axiosInstance";
+import { useEffect, useMemo, useState } from "react";
+import { inputChange } from "@/app/lib/inputChange";
+import { validateEmail, validatePassword } from "@/app/lib/validators";
+import axiosInstance from "@/app/lib/axiosInstance";
 import { signIn, useSession } from "next-auth/react";
-
-export type LoginFormTypes = {
-  email: string;
-  password: string;
-};
-
-export type ErrorLoginFormTypes = {
-  emailError: string | null;
-  passwordError: string | null;
-};
+import { LoginFormTypes } from "@/app/types/auth";
+import { ErrorLoginFormTypes } from "@/app/types/auth";
 
 const loginErrorMap: Record<string, { fieldName?: string; message: string }> = {
   MissingInputs: { message: "Missing email and password" },
@@ -52,7 +44,7 @@ export default function LoginPage() {
   const handleSubmitLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("submitted: ", form);
+    console.log("submitted: ", form.email);
     const emailError = validateEmail(form.email);
     const passwordError = validatePassword(form.password, componentName);
 
@@ -61,35 +53,29 @@ export default function LoginPage() {
       try {
         // const response = await axiosInstance.post("/auth/login", form);
 
-        if (
-          true //|| response.status === 201
-        ) {
-          // console.log("succesfully signeup", response.data);
-          // console.log("succesfully signeup", response.data.user.email);
-          // console.log("succesfully signeup", response.data.user.password);
-          const res = await signIn("credentials", {
-            email: form.email,
-            password: form.password,
-            redirect: false,
-          });
-          if (res?.ok) {
-            console.log("res: ", res);
-            router.push("/dashboard");
-          } else if (res?.error) {
-            console.log("error: ", res?.error);
-            const loginErrorMessage =
-              loginErrorMap[res?.error as string] || "Login faileed";
+        // console.log("succesfully signeup", response.data);
+        // console.log("succesfully signeup", response.data.user.email);
+        // console.log("succesfully signeup", response.data.user.password);
+        const res = await signIn("credentials", {
+          email: form.email,
+          password: form.password,
+          redirect: false,
+        });
+        if (res?.ok) {
+          console.log("res: ", res);
+          router.push("/dashboard");
+        } else if (res?.error) {
+          console.log("error: ", res?.error);
+          const loginErrorMessage = loginErrorMap[res.error] ?? {
+            message: "Login failed. Please try again.",
+          };
 
-            console.log("loginErrorMessage: ", loginErrorMessage);
+          console.log("loginErrorMessage: ", loginErrorMessage);
 
-            setError((prev) => ({
-              ...prev,
-              [loginErrorMessage.fieldName as string]:
-                loginErrorMessage.message,
-            }));
-          }
-        } else {
-          console.error("something went wrong in signup api request ");
+          setError((prev) => ({
+            ...prev,
+            [loginErrorMessage.fieldName as string]: loginErrorMessage.message,
+          }));
         }
       } catch (error: any) {
         if (error.status === 409) {
@@ -114,18 +100,10 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const response = await axiosInstance.get("/auth/check-token");
-        if (response.data.status === 200) router.push("/dashboard");
-      } catch (error) {
-        console.error("error checking token: ", error);
-      }
-    };
-    if (session) {
-      checkToken();
+    if (status === "authenticated") {
+      router.push("/dashboard");
     }
-  }, [session]);
+  }, [status, router]);
 
   return (
     <>
@@ -202,9 +180,9 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{" "}
-            <a href="/signup" className="text-primary hover:underline">
-              Sign up
-            </a>
+            <Link href="/signup" className="text-primary hover:underline">
+              Signup
+            </Link>
           </p>
         </div>
       </section>

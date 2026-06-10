@@ -1,33 +1,21 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Link } from "@heroui/react";
 import NavBar from "@/app/components/Navbar";
 import Footer from "@/app/components/Footer";
 import React, { useEffect, useMemo, useState } from "react";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "@/app/lib/axiosInstance";
 import {
   validateEmail,
   validateName,
   validatePassword,
   validateRepeatPassword,
-} from "@/lib/validators";
+} from "@/app/lib/validators";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { inputChange } from "@/lib/inputChange";
-
-export type SignupFormTypes = {
-  name: string;
-  email: string;
-  password: string;
-  repassword: string;
-};
-
-export type ErrorSignupFormTypes = {
-  nameError: string | null;
-  emailError: string | null;
-  passwordError: string | null;
-  repasswordError: string | null;
-};
+import { inputChange } from "@/app/lib/inputChange";
+import { SignupFormTypes } from "@/app/types/auth";
+import { ErrorSignupFormTypes } from "@/app/types/auth";
 
 export default function SignupPage() {
   const { data: session, status } = useSession();
@@ -115,18 +103,10 @@ export default function SignupPage() {
   };
 
   useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const response = await axiosInstance.get("/auth/check-token");
-        if (response.data.status === 200) router.push("/dashboard");
-      } catch (error) {
-        console.error("error checking token: ", error);
-      }
-    };
     if (session) {
-      checkToken();
+      router.push("/dashboard");
     }
-  }, [session]);
+  }, [session, router]);
 
   return (
     <>
@@ -226,7 +206,7 @@ export default function SignupPage() {
                 className="block text-gray-700 text-sm mb-2"
                 htmlFor="repassword"
               >
-                Password
+                Confirm Password
               </label>
               <input
                 type="password"
@@ -254,6 +234,7 @@ export default function SignupPage() {
               color="primary"
               className="w-full"
               disabled={loading}
+              aria-busy={loading}
             >
               {loading ? "loading" : "Sign Up"}
             </Button>
@@ -261,9 +242,9 @@ export default function SignupPage() {
 
           <p className="mt-6 text-center text-sm text-gray-600">
             Already have an account?{" "}
-            <a href="/login" className="text-primary hover:underline">
+            <Link href="/login" className="text-primary hover:underline">
               Login
-            </a>
+            </Link>
           </p>
         </div>
       </section>

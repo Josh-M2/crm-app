@@ -19,7 +19,7 @@ import Image from "next/image";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "@/app/lib/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cache } from "swr/_internal";

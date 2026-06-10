@@ -1,4 +1,4 @@
-import prismaInstance from "@/lib/prismaInstance";
+import prismaInstance from "@/app/lib/prismaInstance";
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -7,6 +7,7 @@ export async function POST(req: NextRequest) {
 
   if (!token)
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
   const body = await req.json();
   const { email, categoryName, selectedOrg, ownerId, isAdmin } = body;
   console.log("body: ", body);

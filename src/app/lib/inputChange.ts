@@ -48,6 +48,14 @@ export const inputChange = ({
         nameError: validateName(value),
       }));
       break;
+    case "owner":
+      // console.log("functionining");
+      setError((prev: any) => ({
+        ...prev,
+        ownerError: validateName(value),
+      }));
+      break;
+
     case "company":
       // console.log("functionining");
       setError((prev: any) => ({

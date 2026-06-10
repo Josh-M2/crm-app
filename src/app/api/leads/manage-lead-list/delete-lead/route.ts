@@ -17,20 +17,17 @@ export async function POST(req: NextRequest) {
   if (!isAdmin)
     return NextResponse.json({ error: "unauthorized access" }, { status: 401 });
 
-  const deletedCategorziedLead = await prismaInstance.leadCategory.delete({
+  const deletedLead = await prismaInstance.lead.delete({
     where: {
       id: id,
     },
   });
 
-  if (!deletedCategorziedLead)
+  if (!deletedLead)
     return NextResponse.json(
       { error: "no deleted data found" },
       { status: 404 }
     );
 
-  return NextResponse.json(
-    { succes: true, deletedCategorziedLead },
-    { status: 200 }
-  );
+  return NextResponse.json({ succes: true, deletedLead }, { status: 200 });
 }

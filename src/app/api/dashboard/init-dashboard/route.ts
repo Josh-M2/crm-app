@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextResponse, NextRequest } from "next/server";
-import prismaInstance from "@/lib/prismaInstance";
+import prismaInstance from "@/app/lib/prismaInstance";
 import {
   differenceInMinutes,
   differenceInHours,

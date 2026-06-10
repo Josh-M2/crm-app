@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import useSWR, { mutate } from "swr";
-import axiosInstance from "@/lib/axiosInstance"; // your axios instance
+import axiosInstance from "@/app/lib/axiosInstance"; // your axios instance
 import { cache } from "swr/_internal";
 
 export type Organization = {

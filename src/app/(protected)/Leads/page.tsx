@@ -29,9 +29,9 @@ import {
   Organization,
   useOrganization,
 } from "@/app/context/OrganizationContext";
-import { inputChange } from "@/lib/inputChange";
+import { inputChange } from "@/app/lib/inputChange";
 import useSWR, { mutate } from "swr";
-import axiosInstance from "@/lib/axiosInstance";
+import axiosInstance from "@/app/lib/axiosInstance";
 import useSWRMutation from "swr/mutation";
 import axios from "axios";
 
@@ -201,7 +201,10 @@ const handleFetchOrgUserData = async (refData: string) => {
   return filteredLeadsData;
 };
 
-const sendRequest = async (url: string, { arg }: { arg: any }) => {
+const sendRequestToDeleteCategorizedLead = async (
+  url: string,
+  { arg }: { arg: any }
+) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
   const response = await axiosInstance.post(url, arg);
@@ -405,11 +408,11 @@ export default function LeadsPage() {
 
   const {
     data: deletedData,
-    trigger,
+    trigger: triggerDeleteCategorizedLead,
     isMutating,
   } = useSWRMutation(
     "/leads/manage-lead-category/delete-categorized-lead",
-    sendRequest
+    sendRequestToDeleteCategorizedLead
   );
 
   if (status === "loading") return "loading";
@@ -485,7 +488,7 @@ export default function LeadsPage() {
                                       color="danger"
                                       // onPress={() => handleDeleteLead(item.id)}
                                       onPress={() =>
-                                        trigger({
+                                        triggerDeleteCategorizedLead({
                                           id: item.id,
                                           isAdmin:
                                             categorizedLeads?.userRole ===

@@ -1,6 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
-import prismaInstance from "@/lib/prismaInstance";
+import prismaInstance from "@/app/lib/prismaInstance";
 
 export async function POST(req: NextRequest) {
   try {
