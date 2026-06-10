@@ -15,7 +15,7 @@ Datasource:
 ```prisma
 datasource db {
   provider = "postgresql"
-  url      = env("NEON_DEV_DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 ```
 

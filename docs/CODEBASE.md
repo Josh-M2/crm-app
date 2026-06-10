@@ -50,11 +50,11 @@ On Windows, direct local binaries can be run with:
 The application expects these values in `.env`:
 
 ```txt
-NEON_DEV_DATABASE_URL
+DATABASE_URL
 NEXTAUTH_SECRET
 ```
 
-`NEON_DEV_DATABASE_URL` is used by Prisma. `NEXTAUTH_SECRET` is used by NextAuth JWT token verification.
+`DATABASE_URL` is used by Prisma. `NEXTAUTH_SECRET` is used by NextAuth JWT token verification.
 
 ## Top-Level Structure
 

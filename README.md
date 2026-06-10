@@ -43,7 +43,7 @@ npm install
 Create `.env` with:
 
 ```txt
-NEON_DEV_DATABASE_URL=
+DATABASE_URL=
 NEXTAUTH_SECRET=
 ```
 
