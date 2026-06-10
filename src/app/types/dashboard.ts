@@ -16,37 +16,27 @@ export type DashboardApiResponse = {
     conversionRate: number;
     leadCount: number;
     revenue: string;
-    activitiesWithTimeAgo: Activity[];
+    activitiesWithTimeAgo: ActivityWithTimeAgo[];
   };
 };
 
-export type Activity = {
+export type DashboardUser = {
   id: string;
-  description: string;
-  date: string; // ISO date string
-  dealId: string | null;
-  deal: any | null; // You can define this more specifically if needed
-  leadId: string;
-  leadCategoryId: string | null;
-  lead: Lead;
-  organizationId: string;
-  userId: string;
-  user: User;
-  timeAgo: string;
+  email: string;
+  name: string | null;
 };
 
-export interface Lead {
+export type DashboardRelation = {
   id: string;
   name: string;
-  company: string;
-  email: string;
-  status: string;
-}
+};
 
-export interface User {
+export type ActivityWithTimeAgo = {
   id: string;
-  email: string;
-  name: string;
-  password: string;
-  createdAt: string; // ISO date string
-}
+  description: string;
+  date: string;
+  deal: DashboardRelation | null;
+  lead: DashboardRelation | null;
+  user: DashboardUser;
+  timeAgo: string;
+};

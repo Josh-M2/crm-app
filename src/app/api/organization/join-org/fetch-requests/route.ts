@@ -1,19 +1,22 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
-  const token = getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = req.nextUrl.searchParams;
 
   const orgID = body.get("selectedOrg");
   if (!orgID) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
+
+  const auth = await getOrgMembership(req, orgID);
+
+  if ("response" in auth) return auth.response;
+
+  const roleError = requireOrgRole(auth.membership.role, ["ADMIN"]);
+
+  if (roleError) return roleError;
 
   const orgCode = await prismaInstance.organization.findUnique({
     where: {
@@ -31,6 +34,7 @@ export async function GET(req: NextRequest) {
   const orgIniviteData = await prismaInstance.invite.findMany({
     where: {
       code: orgCode.code,
+      organizationId: orgID,
       accepted: false,
     },
   });

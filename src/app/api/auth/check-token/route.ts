@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
-import axiosInstance from "@/app/lib/axiosInstance";
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,10 +7,10 @@ export async function GET(req: NextRequest) {
 
     if (token) {
       return NextResponse.json({ message: "already logged in", status: 200 });
-    } else {
-      return null;
     }
-  } catch (error) {
+
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

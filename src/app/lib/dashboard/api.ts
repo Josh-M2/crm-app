@@ -4,13 +4,13 @@ import { DashboardApiResponse } from "@/app/types/dashboard";
 export const fetchDashboardData = async (
   refData: string
 ): Promise<DashboardApiResponse> => {
-  const [_, email, selectedOrg] = refData.split("::");
+  const [, selectedOrg] = refData.split("::");
   const response = await axiosInstance.get("/dashboard/init-dashboard", {
-    params: { email, selectedOrg },
+    params: { selectedOrg },
   });
 
   if (response?.data.error) {
-    throw new Error(`Error: ${response.data.error.status}`);
+    throw new Error(response.data.error);
   }
 
   return response?.data;

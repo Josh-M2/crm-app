@@ -18,7 +18,7 @@ import {
 import { StatsTypes, ActivityTypes } from "@/app/types/dashboard";
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const { selectedOrg } = useOrganization();
   const [initDashboardData, setInitDashboardData] = useState<StatsTypes[]>();
   const [initDashboardActivity, setInitDashboardActivity] =
@@ -27,10 +27,7 @@ export default function DashboardPage() {
 
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
 
-  const dashboardKey =
-    session?.user?.email && selectedOrg
-      ? `fetch-dashboard-data::${session.user.email}::${selectedOrg}`
-      : null;
+  const dashboardKey = selectedOrg ? `fetch-dashboard-data::${selectedOrg}` : null;
 
   const {
     data,
@@ -81,7 +78,7 @@ export default function DashboardPage() {
                 Hi, {session?.user?.name} 👋
               </h2>
               <p className="text-gray-600 mb-8">
-                Here's what's happening with your leads today.
+                Here&apos;s what&apos;s happening with your leads today.
               </p>
             </div>
 

@@ -9,10 +9,10 @@ import FooterSection from "@/app/components/Footer";
 import NavBar from "@/app/components/Navbar";
 import IntegrationSection from "@/app/components/landing/IntegrationsSection";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function LandingPage() {
+function LandingPageContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -53,5 +53,13 @@ export default function LandingPage() {
 
       <FooterSection />
     </main>
+  );
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingPageContent />
+    </Suspense>
   );
 }

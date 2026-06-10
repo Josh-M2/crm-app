@@ -1,29 +1,21 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-
-  if (!token)
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
   const body = await req.json();
   const {
     name,
     company,
-    email,
     leadEmail,
     status,
     organizationId,
     categoryId,
   } = body;
-  console.log("body: ", body);
 
   if (
     !name ||
     !company ||
-    !email ||
     !status ||
     !leadEmail ||
     !organizationId ||
@@ -31,18 +23,24 @@ export async function POST(req: NextRequest) {
   )
     return NextResponse.json({ error: "Missing field" }, { status: 400 });
 
-  const userId = await prismaInstance.user.findUnique({
-    where: { email },
+  const auth = await getOrgMembership(req, organizationId);
+
+  if ("response" in auth) return auth.response;
+
+  const category = await prismaInstance.leadCategory.findFirst({
+    where: {
+      id: categoryId,
+      organizationId,
+    },
     select: {
-      id: true,
+      name: true,
     },
   });
 
-  if (!userId) {
-    return NextResponse.json({ error: "no user found" }, { status: 404 });
-  }
+  if (!category)
+    return NextResponse.json({ error: "no category found" }, { status: 404 });
+
   const capitalizedStatus = status.toUpperCase();
-  console.log("capitalizedStatus", capitalizedStatus);
 
   const createdLead = await prismaInstance.lead.create({
     data: {
@@ -62,22 +60,10 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
 
-  const catgoryName = await prismaInstance.leadCategory.findUnique({
-    where: {
-      id: categoryId,
-    },
-    select: {
-      name: true,
-    },
-  });
-
-  if (!catgoryName)
-    return NextResponse.json({ error: "no category found" }, { status: 404 });
-
   const createdActivity = await prismaInstance.activity.create({
     data: {
-      description: `Added a new lead to ${catgoryName.name}`,
-      userId: userId.id,
+      description: `Added a new lead to ${category.name}`,
+      userId: auth.user.id,
       organizationId: organizationId,
       leadId: createdLead.id,
     },

@@ -1,64 +1,98 @@
 import prismaInstance from "@/app/lib/prismaInstance";
-import { getToken } from "next-auth/jwt";
+import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token)
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-
     const body = await req.json();
 
-    const { email, organizationId, inviteId } = body;
-    console.log(body);
+    const { organizationId, inviteId } = body;
 
-    if (!email || !organizationId || !inviteId)
+    if (!organizationId || !inviteId)
       return NextResponse.json({ error: "missing fields" }, { status: 400 });
 
-    const userID = await prismaInstance.user.findUnique({
-      where: { email: email },
-      select: { id: true },
-    });
+    const auth = await getOrgMembership(req, organizationId);
 
-    console.log("userID", userID);
+    if ("response" in auth) return auth.response;
 
-    if (!userID)
-      return NextResponse.json({ error: "no user found" }, { status: 404 });
+    const roleError = requireOrgRole(auth.membership.role, ["ADMIN"]);
 
-    const invite = await prismaInstance.invite.update({
-      where: { id: inviteId },
-      data: { accepted: true },
+    if (roleError) return roleError;
+
+    const invite = await prismaInstance.invite.findFirst({
+      where: {
+        id: inviteId,
+        organizationId,
+        accepted: false,
+      },
+      select: {
+        email: true,
+      },
     });
 
     if (!invite)
       return NextResponse.json(
-        { error: "no invite data foun" },
-        { status: 404 }
+        { error: "no invite data found" },
+        { status: 404 },
       );
 
-    const updatedOrganizationuser =
-      await prismaInstance.organizationUser.create({
-        data: {
-          userId: userID.id,
-          organizationId: organizationId,
-          role: "AGENT",
-        },
-      });
+    const userID = await prismaInstance.user.findUnique({
+      where: { email: invite.email },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!userID)
+      return NextResponse.json({ error: "no user found" }, { status: 404 });
+
+    const updatedOrganizationuser = await prismaInstance.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        await tx.invite.update({
+          where: { id: inviteId },
+          data: { accepted: true },
+        });
+
+        return tx.organizationUser.upsert({
+          where: {
+            userId_organizationId: {
+              userId: userID.id,
+              organizationId,
+            },
+          },
+          update: {},
+          create: {
+            userId: userID.id,
+            organizationId,
+            role: "AGENT",
+          },
+        });
+      },
+    );
 
     if (!updatedOrganizationuser)
       return NextResponse.json(
         { error: "no invite data found" },
-        { status: 404 }
+        { status: 404 },
       );
 
-    console.log("updatedOrganizationuser: ", updatedOrganizationuser);
+    const createdActivity = await prismaInstance.activity.create({
+      data: {
+        description: `Accepted ${
+          userID.name ?? userID.email
+        } into the organization`,
+        userId: auth.user.id,
+        organizationId,
+      },
+    });
 
-    return NextResponse.json({ Success: true }, { status: 200 });
-  } catch (error) {
+    return NextResponse.json(
+      { Success: true, createdActivity },
+      { status: 200 },
+    );
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

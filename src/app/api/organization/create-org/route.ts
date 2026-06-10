@@ -1,39 +1,28 @@
-import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import prismaInstance from "@/app/lib/prismaInstance";
+import { getCurrentUser } from "@/app/lib/routeAuth";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
-    if (!token) {
-      return NextResponse.json({ error: "unauthorized", status: 401 });
-    }
-    const body = await req.json();
-    const { email: userEmail, organizationName, organizationCode } = body;
+    const auth = await getCurrentUser(req);
 
-    if (!organizationName || !userEmail || !organizationCode) {
+    if ("response" in auth) return auth.response;
+
+    const body = await req.json();
+    const { organizationName, organizationCode } = body;
+
+    if (!organizationName || !organizationCode) {
       return NextResponse.json({
         error: "Missing fields",
         status: 400,
       });
     }
 
-    const userId = await prismaInstance.user.findUnique({
-      where: { email: userEmail },
-      select: { id: true },
-    });
-
-    console.log("userId123", userId);
-
-    if (!userId) {
-      return NextResponse.json({ error: "no userId Found", status: 404 });
-    }
-
     const createdOrg = await prismaInstance.organization.create({
       data: {
         name: organizationName,
         code: organizationCode,
-        ownerId: userId.id,
+        ownerId: auth.user.id,
       },
     });
 
@@ -59,7 +48,7 @@ export async function POST(req: NextRequest) {
       { message: "organization created" },
       { status: 201 }
     );
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

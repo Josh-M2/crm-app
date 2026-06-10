@@ -4,24 +4,16 @@ import { createContext, useContext, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import useSWR, { mutate } from "swr";
 import axiosInstance from "@/app/lib/axiosInstance"; // your axios instance
-import { cache } from "swr/_internal";
+import type {
+  Organization as PrismaOrganization,
+  OrganizationUserRole,
+  User,
+} from "@prisma/client";
 
 export type Organization = {
-  organization: {
-    id: string;
-    code: string;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
-  };
-  role: "AGENT" | "MINER" | "ADMIN";
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    createdAt: string;
-    updatedAt: string;
-  };
+  organization: PrismaOrganization;
+  role: OrganizationUserRole;
+  user?: Pick<User, "id" | "name" | "email" | "createdAt" | "updatedAt">;
 };
 
 type OrgContextType = {
@@ -37,17 +29,25 @@ const OrganizationContext = createContext<OrgContextType | undefined>(
   undefined
 );
 
-//to make types
-const fetchOrganizations = async (refData: any) => {
-  console.log("fetchOrganizations: ", refData);
-  const [message, email] = refData.split("::"); // splits into ["", "user@example.com"]
-  const response = await axiosInstance.get("/organization/fetch-org", {
-    params: { email: email },
-  });
+type FetchOrganizationsResponse = {
+  userWithOrganizations: Organization[];
+};
 
-  if (response.data) {
+const fetchOrganizations = async (refData: string): Promise<Organization[]> => {
+  console.log("fetchOrganizations: ", refData);
+  const [, email] = refData.split("::"); // splits into ["", "user@example.com"]
+  const response = await axiosInstance.get<FetchOrganizationsResponse>(
+    "/organization/fetch-org",
+    {
+      params: { email: email },
+    }
+  );
+
+  const data = response.data;
+
+  if (data) {
     console.log("fetchedOrganizations: ", response.data.userWithOrganizations);
-    return response.data.userWithOrganizations;
+    return data.userWithOrganizations;
   }
 
   return [];
@@ -99,13 +99,13 @@ export const OrganizationProvider = ({
     if (!orgs || orgs.length === 0) return;
 
     const isSame =
-      JSON.stringify(orgs.map((o: any) => o.organization.id)) ===
+      JSON.stringify(orgs.map((o) => o.organization.id)) ===
       JSON.stringify(organizations.map((o) => o.organization.id));
 
     if (isSame) return; // Skip unnecessary re-setting
 
     const storedOrg = localStorage.getItem("selectedOrg");
-    const foundOrg = orgs.find((org: any) => org.organization.id === storedOrg);
+    const foundOrg = orgs.find((org) => org.organization.id === storedOrg);
     const fallbackOrgId = orgs[0].organization.id;
 
     setOrganizationsState(orgs);
@@ -115,7 +115,7 @@ export const OrganizationProvider = ({
       "selectedOrg",
       foundOrg ? foundOrg.organization.id : fallbackOrgId
     );
-  }, [orgs]);
+  }, [orgs, organizations]);
 
   useEffect(() => {
     if (selectedOrg) console.log("SelectedCurrentOrgID: ", selectedOrg);

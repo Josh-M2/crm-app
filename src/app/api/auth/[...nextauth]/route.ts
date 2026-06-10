@@ -22,7 +22,7 @@ const handler = NextAuth({
         }
 
         // Check if the user already exists (for login)
-        let user = await prismaInstance.user.findUnique({
+        const user = await prismaInstance.user.findUnique({
           where: { email: credentials.email },
         });
 

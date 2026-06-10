@@ -1,36 +1,180 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LeadNest CRM
 
-## Getting Started
+LeadNest CRM is a multi-tenant CRM SaaS built with Next.js App Router, Prisma, Neon PostgreSQL, and NextAuth.
 
-First, run the development server:
+Users can sign up, log in, create or join organizations, manage organization-scoped lead lists, individual leads, deals, users, dashboard metrics, analytics charts, and activity history.
+
+## Documentation
+
+Read these first when working on the project:
+
+```txt
+docs/CODEBASE.md
+docs/DATABASE_SCHEMA.md
+```
+
+- `docs/CODEBASE.md` documents routes, API endpoints, auth, authorization, frontend pages, utilities, seed data, tests, and current architecture decisions.
+- `docs/DATABASE_SCHEMA.md` documents every enum, model, field, relationship, database rule, derived metric, seed behavior, and future schema consideration.
+
+## Tech Stack
+
+- Next.js 15 App Router
+- React 19
+- TypeScript
+- Tailwind CSS
+- HeroUI / NextUI
+- Prisma ORM
+- Neon PostgreSQL
+- NextAuth credentials auth with JWT sessions
+- SWR
+- Axios
+- Recharts
+- Vitest
+- Playwright
+
+## Setup
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create `.env` with:
+
+```txt
+DATABASE_URL=
+NEXTAUTH_SECRET=
+```
+
+Generate Prisma Client if needed:
+
+```bash
+npx prisma generate
+```
+
+Push schema changes to the database when needed:
+
+```bash
+npx prisma db push
+```
+
+Seed demo CRM data:
+
+```bash
+npm run db:seed
+```
+
+Demo login after seeding:
+
+```txt
+Email: admin@leadnest.test
+Password: Password123456
+Organization code: leadnest_demo
+```
+
+## Development
+
+Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```txt
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Build production output:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Start production server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tests
 
-## Deploy on Vercel
+Run unit tests:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm run test:unit
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Run Playwright e2e tests:
+
+```bash
+npm run test:e2e
+```
+
+Run TypeScript manually on Windows:
+
+```powershell
+.\node_modules\.bin\tsc.cmd --noEmit
+```
+
+Test structure:
+
+```txt
+tests/
+  unit/
+  e2e/
+```
+
+## Core Rule
+
+Everything in the CRM must be scoped to the selected organization:
+
+- leads
+- lead lists
+- deals
+- dashboard totals
+- analytics
+- users
+- invites
+- activities
+
+Organization role is stored in `OrganizationUser`, not on `User`.
+
+## Current Scope
+
+Implemented:
+
+- auth
+- organization onboarding
+- organization context
+- role-based organization membership checks
+- lead lists
+- individual leads
+- deals
+- dashboard
+- analytics
+- settings/manage users
+- join request accept/decline
+- activity logging
+- seed data
+- unit and e2e test foundations
+
+Intentionally skipped for now:
+
+- Stripe billing
+- live collaboration / mouse presence
+
+## Useful Files
+
+```txt
+prisma/schema.prisma
+prisma/seed.cjs
+src/app/lib/routeAuth.ts
+src/app/context/OrganizationContext.tsx
+src/middleware.ts
+src/middleware/protectRoutes.ts
+```
+
+For a complete file-by-file and route-by-route explanation, use `docs/CODEBASE.md`.

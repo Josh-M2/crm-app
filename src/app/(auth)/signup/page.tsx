@@ -16,9 +16,19 @@ import { useRouter } from "next/navigation";
 import { inputChange } from "@/app/lib/inputChange";
 import { SignupFormTypes } from "@/app/types/auth";
 import { ErrorSignupFormTypes } from "@/app/types/auth";
+import Image from "next/image";
+
+type AuthRequestError = {
+  status?: number;
+  response?: {
+    data?: {
+      error?: string;
+    };
+  };
+};
 
 export default function SignupPage() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const componentName = useMemo(() => "signup", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
   const [form, setForm] = useState<SignupFormTypes>({
@@ -78,12 +88,13 @@ export default function SignupPage() {
         } else {
           console.error("something went wrong in signup api request ");
         }
-      } catch (error: any) {
-        if (error.status === 409) {
-          console.log("error message", error.response.data.error);
+      } catch (error: unknown) {
+        const requestError = error as AuthRequestError;
+        if (requestError.status === 409) {
+          console.log("error message", requestError.response?.data?.error);
           setError((prev) => ({
             ...prev,
-            emailError: error.response.data.error,
+            emailError: requestError.response?.data?.error ?? "Signup failed.",
           }));
           setIsLoading(false);
           return;
@@ -137,10 +148,12 @@ export default function SignupPage() {
 
             {error.nameError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.nameError}
               </label>
@@ -164,10 +177,12 @@ export default function SignupPage() {
             </div>
             {error.emailError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.emailError}
               </label>
@@ -192,10 +207,12 @@ export default function SignupPage() {
             </div>
             {error.passwordError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.passwordError}
               </label>
@@ -220,10 +237,12 @@ export default function SignupPage() {
             </div>
             {error.repasswordError && (
               <label className="flex items-center !mt-1 text-rose-600 text-xs">
-                <img
+                <Image
                   src={errorImageURL}
                   alt="error exclamatory"
-                  className="max-w-[5%] mr-1"
+                  width={12}
+                  height={12}
+                  className="mr-1"
                 />
                 {error.repasswordError}
               </label>

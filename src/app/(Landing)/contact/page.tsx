@@ -6,7 +6,7 @@ export default function ContactUsPage() {
       <div className="max-w-3xl mx-auto text-center">
         <h2 className="text-3xl font-bold mb-6 text-gray-800">Contact Us</h2>
         <p className="text-lg mb-12 text-gray-600">
-          Have questions or need help? Send us a message and we'll get back to
+          Have questions or need help? Send us a message and we&apos;ll get back to
           you shortly.
         </p>
 

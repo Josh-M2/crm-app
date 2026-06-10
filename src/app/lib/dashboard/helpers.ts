@@ -22,6 +22,6 @@ export const formatActivitiesFromApi = (
   data.data.activitiesWithTimeAgo.map((activity) => ({
     id: activity.id,
     description: activity.description,
-    userName: activity.user.name,
+    userName: activity.user.name ?? "Unknown user",
     timeAgo: activity.timeAgo,
   }));

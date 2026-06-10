@@ -1,10 +1,7 @@
 "use client";
 
 import {
-  Avatar,
   Button,
-  Card,
-  CardBody,
   Divider,
   Dropdown,
   DropdownItem,
@@ -23,23 +20,34 @@ import axiosInstance from "@/app/lib/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { cache } from "swr/_internal";
+import type {
+  Invite,
+  OrganizationUserRole,
+  User,
+} from "@prisma/client";
 
-type orgRequestType = {
+type OrgRequestType = Invite;
+type OrgUserData = {
   id: string;
-  accepted: boolean;
-  code: string;
-  email: string;
-  createdAt: string;
-  organizationId: string;
+  role: OrganizationUserRole;
+  user: Pick<User, "id" | "name" | "email">;
+};
+type InviteDataResponse = {
+  orgIniviteData: OrgRequestType[];
+  error?: string | { status?: number };
+};
+type OrgUserDataResponse = {
+  orgUser: OrgUserData[];
+  error?: string | { status?: number };
 };
 
 const handleFetchInviteData = async (refData: string) => {
   if (!refData) {
-    return console.error("no refData refData");
+    return { orgIniviteData: [] };
   }
-  const [_, selectedOrg] = refData.split("::");
+  const [, selectedOrg] = refData.split("::");
 
-  const response = await axiosInstance.get(
+  const response = await axiosInstance.get<InviteDataResponse>(
     "/organization/join-org/fetch-requests",
     {
       params: {
@@ -49,7 +57,7 @@ const handleFetchInviteData = async (refData: string) => {
   );
 
   if (response?.data.error) {
-    throw new Error(`Error: ${response.data.error.status}`);
+    throw new Error(`Error: ${response.data.error}`);
   }
 
   console.log("handleFetchInviteData123: ", response.data);
@@ -59,18 +67,21 @@ const handleFetchInviteData = async (refData: string) => {
 
 const handleFetchOrgUserData = async (refData: string) => {
   if (!refData) {
-    return console.error("no refData refData");
+    return { orgUser: [] };
   }
-  const [_, selectedOrg] = refData.split("::");
+  const [, selectedOrg] = refData.split("::");
 
-  const response = await axiosInstance.get("/organization/fetch-org-users", {
-    params: {
-      selectedOrg: selectedOrg,
-    },
-  });
+  const response = await axiosInstance.get<OrgUserDataResponse>(
+    "/organization/fetch-org-users",
+    {
+      params: {
+        selectedOrg: selectedOrg,
+      },
+    }
+  );
 
   if (response?.data.error) {
-    throw new Error(`Error: ${response.data.error.status}`);
+    throw new Error(`Error: ${response.data.error}`);
   }
 
   console.log("handleFetchOrgUserData123: ", response.data);
@@ -78,15 +89,15 @@ const handleFetchOrgUserData = async (refData: string) => {
   return response.data;
 };
 
-export default function manageUser() {
-  const { data: session, status } = useSession();
+export default function ManageUser() {
+  const { data: session } = useSession();
   const { selectedOrg } = useOrganization();
   const router = useRouter();
-  const [requestData, setRequestData] = useState<orgRequestType[]>();
-  const [orgUserData, setOrgUserData] = useState<any>();
-  const [isAccepting, setIsAccepting] = useState<boolean>(false);
-  const [isDeleting, setIsDeleting] = useState<boolean>(false);
-  const [isManagingUser, setIsManagingUser] = useState<boolean>(false);
+  const [requestData, setRequestData] = useState<OrgRequestType[]>();
+  const [orgUserData, setOrgUserData] = useState<OrgUserData[]>();
+  const [, setIsAccepting] = useState<boolean>(false);
+  const [, setIsDeleting] = useState<boolean>(false);
+  const [, setIsManagingUser] = useState<boolean>(false);
 
   const manageUserRequestKey =
     session?.user?.email && selectedOrg
@@ -99,9 +110,7 @@ export default function manageUser() {
 
   const {
     data: manageUserRequestData,
-    error: errorUserRequest,
     isLoading: isLoadingUserRequest = true,
-    mutate: mutateUserRequest,
   } = useSWR(manageUserRequestKey, handleFetchInviteData, {
     dedupingInterval: 60000,
     revalidateOnMount: true,
@@ -120,9 +129,7 @@ export default function manageUser() {
 
   const {
     data: manageOrgUserData,
-    error: errorOrgUser,
     isLoading: isLoadingOrgUserData = true,
-    mutate: mutateOrgUser,
   } = useSWR(manageOrgUserKey, handleFetchOrgUserData, {
     dedupingInterval: 60000,
     revalidateOnMount: true,
@@ -153,18 +160,17 @@ export default function manageUser() {
     router.push("/settings");
   };
 
-  const handleAcceptRequest = async (user: any) => {
+  const handleAcceptRequest = async (user: OrgRequestType) => {
     setIsAccepting(true);
     const response = await axiosInstance.post(
       "/organization/join-org/accept-request",
       {
-        email: user.email,
         organizationId: selectedOrg,
         inviteId: user.id,
       }
     );
     if (response?.data?.error) {
-      throw new Error(`error: `, response.data.error);
+      throw new Error(`error: ${response.data.error}`);
     }
     console.log("acceptResponse", response.data);
     setIsAccepting(false);
@@ -176,11 +182,12 @@ export default function manageUser() {
     const response = await axiosInstance.post(
       "/organization/join-org/delete-request",
       {
-        userId,
+        inviteId: userId,
+        selectedOrg,
       }
     );
 
-    if (response.data.error) throw new Error("error: ", response.data.error);
+    if (response.data.error) throw new Error(`error: ${response.data.error}`);
 
     console.log("handleDeleteRequest: ", response.data);
     setIsDeleting(false);
@@ -193,9 +200,10 @@ export default function manageUser() {
     const response = await axiosInstance.post("/organization/setup-user", {
       role: upperCaseRole,
       orgUserId,
+      selectedOrg,
     });
 
-    if (response?.data?.error) throw new Error("error: ", response.data.error);
+    if (response?.data?.error) throw new Error(`error: ${response.data.error}`);
 
     console.log("handleManageOrgUsers: ", response.data);
     setIsManagingUser(false);
@@ -223,14 +231,12 @@ export default function manageUser() {
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
               <ul className="divide-y">
                 {!orgUserData || isLoadingOrgUserData
-                  ? "loadingasd"
-                  : orgUserData?.map((user: any, index: number) =>
-                      user.user.email === session?.user?.email ? (
-                        ""
-                      ) : (
+                  ? "Loading organization users..."
+                  : orgUserData?.map((user) =>
+                      user.user.email === session?.user?.email ? null : (
                         <li
                           className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
-                          key={index}
+                          key={user.id}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900">
@@ -282,7 +288,7 @@ export default function manageUser() {
                                 </DropdownItem>
                               ) : null}
 
-                              {user.role !== "admin" ? (
+                              {user.role !== "ADMIN" ? (
                                 <DropdownItem
                                   key="admin"
                                   onPress={() => {
@@ -316,13 +322,13 @@ export default function manageUser() {
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
               <ul className="divide-y">
                 {isLoadingUserRequest || !requestData
-                  ? "loading asdasd"
+                  ? "Loading join requests..."
                   : requestData?.map(
                       //to make types
-                      (user: any, index: number) => (
+                      (user) => (
                         <li
                           className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
-                          key={index}
+                          key={user.id}
                         >
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900">
