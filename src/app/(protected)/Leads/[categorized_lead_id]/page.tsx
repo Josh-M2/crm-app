@@ -90,11 +90,11 @@ const columns = [
   },
   {
     key: "email",
-    label: "email",
+    label: "EMAIL",
   },
   {
     key: "status",
-    label: "Status",
+    label: "STATUS",
   },
   {
     key: "lastInteraction",
@@ -333,7 +333,7 @@ export default function EditLeadsPage({
   );
 
   if (!categorized_lead_id || !leadTitle) {
-    return <div>Error: No owner found in the query parameters.</div>;
+    return <div>Error: No lead list found in the query parameters.</div>;
   }
 
   return (
@@ -373,8 +373,8 @@ export default function EditLeadsPage({
 
         {/* Leads Table */}
         {isLoadingListOfLeads ? (
-          "loading"
-        ) : listOfLeads ? (
+          <p className="ml-10 text-gray-500">Loading leads...</p>
+        ) : listOfLeads?.formatedLeads.length ? (
           <Table aria-label="categorize's lead list">
             <TableHeader columns={columns}>
               {(column) => (
@@ -441,7 +441,9 @@ export default function EditLeadsPage({
             </TableBody>
           </Table>
         ) : (
-          "no leads found"
+          <div className="ml-10 rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
+            No leads found.
+          </div>
         )}
       </motion.main>
       {/* The sidebar toggle button */}
@@ -458,7 +460,7 @@ export default function EditLeadsPage({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New Deal</ModalHeader>
+              <ModalHeader>Add Lead</ModalHeader>
               <ModalBody>
                 <form
                   className="space-y-6"
@@ -547,7 +549,7 @@ export default function EditLeadsPage({
                       Cancel
                     </Button>
                     <Button color="primary" type="submit">
-                      Add Deal
+                      Add Lead
                     </Button>
                   </ModalFooter>
                 </form>
@@ -561,7 +563,7 @@ export default function EditLeadsPage({
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Update Deal</ModalHeader>
+              <ModalHeader>Update Lead</ModalHeader>
               <ModalBody>
                 <form
                   className="space-y-6"
@@ -665,7 +667,7 @@ export default function EditLeadsPage({
                       Cancel
                     </Button>
                     <Button color="primary" type="submit">
-                      Update Deal
+                      Update Lead
                     </Button>
                   </ModalFooter>
                 </form>

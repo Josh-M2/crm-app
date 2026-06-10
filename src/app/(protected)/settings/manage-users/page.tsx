@@ -231,7 +231,7 @@ export default function ManageUser() {
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
               <ul className="divide-y">
                 {!orgUserData || isLoadingOrgUserData
-                  ? "loadingasd"
+                  ? "Loading organization users..."
                   : orgUserData?.map((user) =>
                       user.user.email === session?.user?.email ? null : (
                         <li
@@ -322,7 +322,7 @@ export default function ManageUser() {
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
               <ul className="divide-y">
                 {isLoadingUserRequest || !requestData
-                  ? "loading asdasd"
+                  ? "Loading join requests..."
                   : requestData?.map(
                       //to make types
                       (user) => (

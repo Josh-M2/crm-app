@@ -95,7 +95,7 @@ type TableColumnDefinition = {
 const columns: TableColumnDefinition[] = [
   {
     key: "leadName",
-    label: "LEAD NAME",
+    label: "LIST NAME",
   },
   {
     key: "owner",
@@ -103,7 +103,7 @@ const columns: TableColumnDefinition[] = [
   },
   {
     key: "assignedto",
-    label: "Assigned To",
+    label: "ASSIGNED USER",
   },
   {
     key: "actions",
@@ -403,7 +403,7 @@ export default function LeadsPage() {
     sendRequestToDeleteCategorizedLead
   );
 
-  if (status === "loading") return "loading";
+  if (status === "loading") return <p className="p-8">Loading...</p>;
 
   return (
     <div className="min-h-screen flex bg-gray-50">
@@ -429,19 +429,17 @@ export default function LeadsPage() {
 
               {/* Leads title and Add new lead button */}
               <div className="flex justify-between mb-4">
-                <h3 className="text-xl font-bold">
-                  Leads for All Owners
-                </h3>
+                <h3 className="text-xl font-bold">Lead Lists</h3>
                 <Button color="primary" onPress={onAddOpen}>
-                  Add New Owner
+                  Add Lead List
                 </Button>
               </div>
             </div>
 
             {/* Table to display leads */}
-            {isLoadingcategorizedLeads
-              ? "loading"
-              : categorizedLeads && (
+            {isLoadingcategorizedLeads ? (
+              <p className="ml-10 text-gray-500">Loading lead lists...</p>
+            ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
                   <Table aria-label="oraganization categorized leads">
                     <TableHeader columns={columns}>
                       {(column) => (
@@ -495,7 +493,11 @@ export default function LeadsPage() {
                       )}
                     </TableBody>
                   </Table>
-                )}
+            ) : (
+              <div className="ml-10 rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
+                No lead lists yet.
+              </div>
+            )}
           </>
         ) : (
           <SetUpOrg />
@@ -514,7 +516,7 @@ export default function LeadsPage() {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader>Add New categorized Lead</ModalHeader>
+              <ModalHeader>Add Lead List</ModalHeader>
               <ModalBody>
                 <form
                   className="space-y-6"
@@ -531,7 +533,7 @@ export default function LeadsPage() {
                   <div>
                     <Input
                       // isRequired
-                      label="Lead Name"
+                      label="List name"
                       type="text"
                       id="name"
                       name="name"
@@ -556,7 +558,7 @@ export default function LeadsPage() {
                     <Select
                       // isRequired
                       className="max-w-xs"
-                      label="Select an Agent"
+                      label="Owner"
                       name="owner"
                       selectedKeys={[form.owner]}
                       onChange={handleChange}
@@ -574,7 +576,7 @@ export default function LeadsPage() {
                         categorizedLeads?.userRole === "MINER"
                       }
                       className="max-w-xs"
-                      label="Assigned to"
+                      label="Assigned user"
                       name="assignedTo"
                       selectedKeys={[form.assignedTo]}
                       placeholder={
@@ -594,24 +596,12 @@ export default function LeadsPage() {
                     <Button variant="light" onPress={onClose}>
                       Cancel
                     </Button>
-                    <Button
-                      color="primary"
-                      type="submit"
-                      // onPress={handleAddCategorizedLead(selectedOrg, form)}
-                    >
+                    <Button color="primary" type="submit">
                       Confirm
                     </Button>
                   </ModalFooter>
                 </form>
               </ModalBody>
-              {/* <ModalFooter>
-                <Button variant="light" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button color="primary" onPress={onClose}>
-                  Add Deal
-                </Button>
-              </ModalFooter> */}
             </>
           )}
         </ModalContent>
