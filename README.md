@@ -116,7 +116,7 @@ npm run test:e2e
 Run TypeScript manually on Windows:
 
 ```powershell
-.\node_modules\.bin\tsc.cmd --noEmit
+npx tsc --noEmit
 ```
 
 Test structure:
