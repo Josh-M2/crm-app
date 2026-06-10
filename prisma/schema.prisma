@@ -1,10 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,6 +5,119 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("NEON_DEV_DATABASE_URL")
+}
+
+model User {
+  id                     String             @id @default(uuid())
+  email                  String             @unique
+  name                   String?
+  password               String
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  activities             Activity[]
+  deals                  Deal[]
+  leadCategoriesAssigned LeadCategory[]     @relation("CategoryAssignee")
+  leadCategoriesOwned    LeadCategory[]     @relation("CategoryOwner")
+  ownedOrganizations     Organization[]     @relation("OrganizationOwner")
+  organizations          OrganizationUser[]
+}
+
+model Organization {
+  id             String             @id @default(uuid())
+  name           String
+  code           String             @unique
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  ownerId        String
+  activities     Activity[]
+  deals          Deal[]
+  invites        Invite[]
+  leads          Lead[]
+  leadCategories LeadCategory[]
+  owner          User               @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  users          OrganizationUser[]
+}
+
+model OrganizationUser {
+  id             String               @id @default(uuid())
+  userId         String
+  organizationId String
+  role           OrganizationUserRole
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+  user           User                 @relation(fields: [userId], references: [id])
+
+  @@unique([userId, organizationId])
+}
+
+model LeadCategory {
+  id             String       @id @default(uuid())
+  name           String
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  assignedToId   String
+  ownerId        String
+  organizationId String
+  activities     Activity[]
+  leads          Lead[]
+  assignedTo     User         @relation("CategoryAssignee", fields: [assignedToId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  owner          User         @relation("CategoryOwner", fields: [ownerId], references: [id])
+}
+
+model Lead {
+  id              String        @id @default(uuid())
+  name            String
+  company         String
+  email           String
+  status          LeadStatus
+  lastInteraction DateTime
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  organizationId  String
+  categoryId      String?
+  activities      Activity[]
+  category        LeadCategory? @relation(fields: [categoryId], references: [id])
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+}
+
+model Deal {
+  id             String       @id @default(uuid())
+  name           String
+  amount         Decimal
+  status         DealStatus
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organizationId String
+  ownerId        String
+  activities     Activity[]
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  owner          User         @relation(fields: [ownerId], references: [id])
+}
+
+model Activity {
+  id             String        @id @default(uuid())
+  description    String
+  date           DateTime      @default(now())
+  userId         String
+  organizationId String
+  leadId         String?
+  dealId         String?
+  leadCategoryId String?
+  deal           Deal?         @relation(fields: [dealId], references: [id])
+  leadCategory   LeadCategory? @relation(fields: [leadCategoryId], references: [id])
+  lead           Lead?         @relation(fields: [leadId], references: [id])
+  organization   Organization  @relation(fields: [organizationId], references: [id])
+  user           User          @relation(fields: [userId], references: [id])
+}
+
+model Invite {
+  id             String       @id @default(uuid())
+  email          String
+  code           String
+  accepted       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
 enum LeadStatus {
@@ -28,146 +134,7 @@ enum DealStatus {
 }
 
 enum OrganizationUserRole {
-  AGENT // can only read write (update)
-  MINER // can only read and write (update, delete, insert)
-  ADMIN // can access all
-}
-
-model User {
-  id             String           @id @default(uuid())
-  email          String           @unique
-  name           String?
-  password       String
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  organizations  OrganizationUser[]
-  ownedOrganizations Organization[] @relation("OrganizationOwner")
-  // leadsOwned     Lead[]           @relation("LeadOwner")
-  // leadsAssigned  Lead[]           @relation("LeadAssignee")
-  leadCategoriesOwned LeadCategory[] @relation("CategoryOwner")
-  leadCategoriesAssigned LeadCategory[] @relation("CategoryAssignee")
-  deals          Deal[]
-  activities     Activity[]
-}
-
-model Organization {
-  id            String            @id @default(uuid())
-  name          String
-  code          String            @unique
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
-
-  owner         User              @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  ownerId       String
-
-  users         OrganizationUser[]
-  leads         Lead[]
-  deals         Deal[]
-  activities    Activity[]
-  invites       Invite[]
-
-  leadCategories LeadCategory[]   
-}
-
-
-model OrganizationUser {
-  id              String         @id @default(uuid())
-  role            OrganizationUserRole   
-  user            User           @relation(fields: [userId], references: [id])
-  userId          String
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  organizationId  String
-
-  @@unique([userId, organizationId])
-}
-
-model LeadCategory {
-  id            String   @id @default(uuid())
-  name          String
-
-  owner         User     @relation("CategoryOwner", fields: [ownerId], references: [id])
-  ownerId       String
-
-  assignedTo    User     @relation("CategoryAssignee", fields: [assignedToId], references: [id])
-  assignedToId  String
-
-  organization  Organization @relation(fields: [organizationId], references: [id])
-  organizationId String
-
-  leads         Lead[]
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  activities    Activity[]
-}
-
-
-model Lead {
-  id              String         @id @default(uuid())
-  name            String
-  company         String
-  email           String
-  status          LeadStatus
-  lastInteraction DateTime
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  organizationId  String
-
-  category        LeadCategory?  @relation(fields: [categoryId], references: [id])
-  categoryId      String?
-
-  activities      Activity[]
-}
-
-
-
-model Deal {
-  id              String         @id @default(uuid())
-  name            String
-  amount          Decimal
-  status          DealStatus
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
-
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  organizationId  String
-
-  owner           User           @relation(fields: [ownerId], references: [id])
-  ownerId         String
-
-  activities      Activity[]
-}
-
-model Activity {
-  id              String         @id @default(uuid())
-  description     String
-  date            DateTime       @default(now())
-
-  user            User           @relation(fields: [userId], references: [id])
-  userId          String
-
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  organizationId  String
-
-  leadCategory    LeadCategory?  @relation(fields: [leadCategoryId], references: [id])
-  leadCategoryId  String?
-
-  lead            Lead?          @relation(fields: [leadId], references: [id])
-  leadId          String?
-
-  deal            Deal?          @relation(fields: [dealId], references: [id])
-  dealId          String?
-}
-
-model Invite {
-  id              String         @id @default(uuid())
-  email           String
-  code            String
-  accepted        Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-
-  organization    Organization   @relation(fields: [organizationId], references: [id])
-  organizationId  String
+  AGENT
+  MINER
+  ADMIN
 }
