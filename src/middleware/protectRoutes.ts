@@ -1,31 +1,40 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
+const protectedRoutePrefixes = [
+  "/analytics",
+  "/dashboard",
+  "/deals",
+  "/leads",
+  "/settings",
+];
+
+const authRoutes = ["/login", "/signup"];
+
+const isRouteMatch = (pathname: string, route: string) =>
+  pathname === route || pathname.startsWith(`${route}/`);
+
 export async function protectedRoutes(req: NextRequest) {
   const url = req.nextUrl.clone();
-  // console.log("Middleware trigg", req);
+  const isProtectedRoute = protectedRoutePrefixes.some((route) =>
+    isRouteMatch(url.pathname, route)
+  );
+  const isAuthRoute = authRoutes.includes(url.pathname);
 
-  const protectedRoutes = [
-    "/analytics",
-    "/dashboard",
-    "/deals",
-    "/leads",
-    "/settings",
-    "/set-up-organization",
-  ];
+  if (!isProtectedRoute && !isAuthRoute) return null;
 
-  if (protectedRoutes.includes(url.pathname)) {
-    console.log("checking toke");
+  const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
 
-    const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET });
+  if (isProtectedRoute && !token) {
+    const loginUrl = new URL("/login", req.url);
+    loginUrl.searchParams.set("callbackUrl", req.nextUrl.pathname);
+    return NextResponse.redirect(loginUrl);
+  }
 
-    if (!token) {
-      url.pathname = "/login";
-      console.log("No token found, redirecting to /login...");
-      return NextResponse.redirect(url);
-    }
-
-    console.log("Token found, user is authenticated.");
+  if (isAuthRoute && token) {
+    url.pathname = "/dashboard";
+    url.search = "";
+    return NextResponse.redirect(url);
   }
 
   return null;

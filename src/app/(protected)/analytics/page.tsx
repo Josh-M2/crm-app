@@ -19,51 +19,45 @@ import {
 } from "recharts";
 
 import { motion } from "framer-motion";
+import useSWR from "swr";
 
 import Sidebar from "@/app/components/Sidebar";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import { useOrganization } from "@/app/context/OrganizationContext";
+import { fetchAnalyticsData } from "@/app/lib/analytics/api";
 
-const revenueData = [
-  { month: "Jan", year: 2023, revenue: 3000 },
-  { month: "Feb", year: 2023, revenue: 3500 },
-  { month: "Mar", year: 2023, revenue: 4000 },
-  { month: "Apr", year: 2023, revenue: 4500 },
-  { month: "May", year: 2023, revenue: 5000 },
-  { month: "Jun", year: 2023, revenue: 5500 },
-  { month: "Jul", year: 2023, revenue: 6000 },
-  { month: "Aug", year: 2023, revenue: 6500 },
-  { month: "Sep", year: 2023, revenue: 7000 },
-  { month: "Oct", year: 2023, revenue: 7500 },
-  { month: "Nov", year: 2023, revenue: 8000 },
-  { month: "Dec", year: 2023, revenue: 8500 },
-];
-
-const leadsByStatusData = [
-  { name: "New", value: 120 },
-  { name: "In Progress", value: 80 },
-  { name: "Converted", value: 50 },
-  { name: "Contacted", value: 30 },
-];
-
-const monthlyNewLeadsData = [
-  { month: "Jan", newLeads: 30 },
-  { month: "Feb", newLeads: 40 },
-  { month: "Mar", newLeads: 50 },
-  { month: "Apr", newLeads: 60 },
-  { month: "May", newLeads: 70 },
-  { month: "Jun", newLeads: 80 },
-  { month: "Jul", newLeads: 90 },
-  { month: "Aug", newLeads: 100 },
-  { month: "Sep", newLeads: 110 },
-  { month: "Oct", newLeads: 120 },
-  { month: "Nov", newLeads: 130 },
-  { month: "Dec", newLeads: 140 },
-];
+const CHART_COLORS = ["#2563eb", "#059669", "#d97706", "#dc2626"];
 
 export default function AnalyticsPage() {
-  const [initAnalyticsData] = useState<null>(null);
+  const { selectedOrg } = useOrganization();
   const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
+
+  const analyticsKey = selectedOrg
+    ? `fetch-analytics-data::${selectedOrg}`
+    : null;
+
+  const {
+    data,
+    error,
+    isLoading: isLoadingAnalyticsData,
+  } = useSWR(analyticsKey, fetchAnalyticsData, {
+    revalidateOnFocus: true,
+    dedupingInterval: 60000,
+    revalidateOnMount: true,
+  });
+
+  const revenueData = data?.data.revenueOverTime ?? [];
+  const leadsByStatusData = data?.data.leadsByStatus ?? [];
+  const monthlyNewLeadsData = data?.data.monthlyNewLeads ?? [];
+
+  const hasAnalyticsData =
+    revenueData.length > 0 ||
+    leadsByStatusData.length > 0 ||
+    monthlyNewLeadsData.length > 0;
+
+  if (error) return <p>Error: {error.message}</p>;
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       <motion.div
@@ -81,11 +75,21 @@ export default function AnalyticsPage() {
         animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
         transition={{ duration: 0.2 }} // Set transition duration for smooth effect
       >
-        {initAnalyticsData ? (
+        {!selectedOrg ? (
+          <SetUpOrg />
+        ) : isLoadingAnalyticsData ? (
+          ""
+        ) : (
           <>
             <div className="ml-10">
               <h2 className="text-3xl font-semibold mb-6">Analytics</h2>
             </div>
+
+            {!hasAnalyticsData && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-600">
+                No analytics data yet.
+              </div>
+            )}
 
             {/* Revenue Over Time Chart */}
             <div className="mb-8">
@@ -93,18 +97,11 @@ export default function AnalyticsPage() {
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={revenueData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  {/* XAxis updated to safely handle both month and year */}
-                  <XAxis
-                    dataKey="month"
-                    tickFormatter={(tick, index) => {
-                      const year = revenueData[index]?.year;
-                      return year ? `${tick} ${year}` : tick; // safely concatenate the month and year
-                    }}
-                  />
+                  <XAxis dataKey="month" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Line type="monotone" dataKey="revenue" stroke="#8884d8" />
+                  <Line type="monotone" dataKey="revenue" stroke="#2563eb" />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -126,9 +123,7 @@ export default function AnalyticsPage() {
                     {leadsByStatusData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={
-                          ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index]
-                        }
+                        fill={CHART_COLORS[index % CHART_COLORS.length]}
                       />
                     ))}
                   </Pie>
@@ -147,13 +142,11 @@ export default function AnalyticsPage() {
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Bar dataKey="newLeads" fill="#8884d8" />
+                  <Bar dataKey="newLeads" fill="#059669" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </>
-        ) : (
-          <SetUpOrg />
         )}
       </motion.main>
       <button

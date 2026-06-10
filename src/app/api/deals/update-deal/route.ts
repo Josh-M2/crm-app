@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     },
     select: {
       id: true,
+      name: true,
     },
   });
 
@@ -53,32 +54,19 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
 
-  //should get the dealName instead of leadName
-  //   const catgoryName = await prismaInstance.leadCategory.findUnique({
-  //     where: {
-  //       id: categoryId,
-  //     },
-  //     select: {
-  //       name: true,
-  //     },
-  //   });
-
-  //   if (!catgoryName)
-  //     return NextResponse.json({ error: "no category found" }, { status: 404 });
-
-  //   const createdActivity = await prismaInstance.activity.create({
-  //     data: {
-  //       description: `Updated a lead to ${catgoryName.name}`,
-  //       userId: userId.id,
-  //       organizationId: organizationId,
-  //       leadId: updatedLead.id,
-  //     },
-  //   });
+  const createdActivity = await prismaInstance.activity.create({
+    data: {
+      description: `Updated deal ${deal.name}`,
+      userId: auth.user.id,
+      organizationId: selectedOrg,
+      dealId: updatedDeal.id,
+    },
+  });
 
   return NextResponse.json(
     {
       updatedDeal,
-      //createdActivity,
+      createdActivity,
     },
     { status: 200 }
   );

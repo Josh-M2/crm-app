@@ -17,6 +17,22 @@ export async function POST(req: NextRequest) {
 
   if (roleError) return roleError;
 
+  const category = await prismaInstance.leadCategory.findFirst({
+    where: {
+      id,
+      organizationId: selectedOrg,
+    },
+    select: {
+      name: true,
+    },
+  });
+
+  if (!category)
+    return NextResponse.json(
+      { error: "no deleted data found" },
+      { status: 404 }
+    );
+
   const deletedCategorziedLead = await prismaInstance.leadCategory.deleteMany({
     where: {
       id,
@@ -30,8 +46,16 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
 
+  const createdActivity = await prismaInstance.activity.create({
+    data: {
+      description: `Deleted lead category ${category.name}`,
+      userId: auth.user.id,
+      organizationId: selectedOrg,
+    },
+  });
+
   return NextResponse.json(
-    { succes: true, deletedCategorziedLead },
+    { succes: true, deletedCategorziedLead, createdActivity },
     { status: 200 }
   );
 }

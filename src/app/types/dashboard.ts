@@ -1,10 +1,3 @@
-import type {
-  Activity as PrismaActivity,
-  Deal,
-  Lead,
-  User,
-} from "@prisma/client";
-
 export type ActivityTypes = {
   id: string;
   description: string;
@@ -27,9 +20,23 @@ export type DashboardApiResponse = {
   };
 };
 
-export type ActivityWithTimeAgo = PrismaActivity & {
-  deal: Deal | null;
-  lead: Lead | null;
-  user: User;
+export type DashboardUser = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
+export type DashboardRelation = {
+  id: string;
+  name: string;
+};
+
+export type ActivityWithTimeAgo = {
+  id: string;
+  description: string;
+  date: string;
+  deal: DashboardRelation | null;
+  lead: DashboardRelation | null;
+  user: DashboardUser;
   timeAgo: string;
 };

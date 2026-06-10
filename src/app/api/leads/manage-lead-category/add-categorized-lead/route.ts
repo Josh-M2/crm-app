@@ -44,5 +44,18 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
   }
-  return NextResponse.json({ addedCategorizedLead }, { status: 200 });
+
+  const createdActivity = await prismaInstance.activity.create({
+    data: {
+      description: `Created lead category ${addedCategorizedLead.name}`,
+      userId: auth.user.id,
+      organizationId: selectedOrg,
+      leadCategoryId: addedCategorizedLead.id,
+    },
+  });
+
+  return NextResponse.json(
+    { addedCategorizedLead, createdActivity },
+    { status: 200 }
+  );
 }

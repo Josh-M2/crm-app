@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
   const orgIniviteData = await prismaInstance.invite.findMany({
     where: {
       code: orgCode.code,
+      organizationId: orgID,
       accepted: false,
     },
   });

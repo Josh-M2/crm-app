@@ -1,5 +1,6 @@
 import prismaInstance from "@/app/lib/prismaInstance";
 import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
+import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -33,42 +34,65 @@ export async function POST(req: NextRequest) {
     if (!invite)
       return NextResponse.json(
         { error: "no invite data found" },
-        { status: 404 }
+        { status: 404 },
       );
 
     const userID = await prismaInstance.user.findUnique({
       where: { email: invite.email },
-      select: { id: true },
+      select: { id: true, name: true, email: true },
     });
 
     if (!userID)
       return NextResponse.json({ error: "no user found" }, { status: 404 });
 
-    await prismaInstance.invite.update({
-      where: { id: inviteId },
-      data: { accepted: true },
-    });
+    const updatedOrganizationuser = await prismaInstance.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        await tx.invite.update({
+          where: { id: inviteId },
+          data: { accepted: true },
+        });
 
-    const updatedOrganizationuser =
-      await prismaInstance.organizationUser.create({
-        data: {
-          userId: userID.id,
-          organizationId: organizationId,
-          role: "AGENT",
-        },
-      });
+        return tx.organizationUser.upsert({
+          where: {
+            userId_organizationId: {
+              userId: userID.id,
+              organizationId,
+            },
+          },
+          update: {},
+          create: {
+            userId: userID.id,
+            organizationId,
+            role: "AGENT",
+          },
+        });
+      },
+    );
 
     if (!updatedOrganizationuser)
       return NextResponse.json(
         { error: "no invite data found" },
-        { status: 404 }
+        { status: 404 },
       );
 
-    return NextResponse.json({ Success: true }, { status: 200 });
+    const createdActivity = await prismaInstance.activity.create({
+      data: {
+        description: `Accepted ${
+          userID.name ?? userID.email
+        } into the organization`,
+        userId: auth.user.id,
+        organizationId,
+      },
+    });
+
+    return NextResponse.json(
+      { Success: true, createdActivity },
+      { status: 200 },
+    );
   } catch {
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

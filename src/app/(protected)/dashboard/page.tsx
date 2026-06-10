@@ -27,10 +27,7 @@ export default function DashboardPage() {
 
   const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
 
-  const dashboardKey =
-    session?.user?.email && selectedOrg
-      ? `fetch-dashboard-data::${session.user.email}::${selectedOrg}`
-      : null;
+  const dashboardKey = selectedOrg ? `fetch-dashboard-data::${selectedOrg}` : null;
 
   const {
     data,

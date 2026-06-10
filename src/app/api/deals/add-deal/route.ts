@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   const capitalizedStatus = status.toUpperCase();
 
-  const addedCategorizedLead = await prismaInstance.deal.create({
+  const addedDeal = await prismaInstance.deal.create({
     data: {
       name,
       amount,
@@ -32,11 +32,24 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  if (!addedCategorizedLead) {
+  if (!addedDeal) {
     return NextResponse.json(
       { error: "no created deal category found " },
       { status: 404 }
     );
   }
-  return NextResponse.json({ addedCategorizedLead }, { status: 200 });
+
+  const createdActivity = await prismaInstance.activity.create({
+    data: {
+      description: `Created deal ${addedDeal.name}`,
+      userId: auth.user.id,
+      organizationId: selectedOrg,
+      dealId: addedDeal.id,
+    },
+  });
+
+  return NextResponse.json(
+    { addedCategorizedLead: addedDeal, createdActivity },
+    { status: 200 }
+  );
 }

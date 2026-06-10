@@ -17,6 +17,22 @@ export async function POST(req: NextRequest) {
 
   if (roleError) return roleError;
 
+  const deal = await prismaInstance.deal.findFirst({
+    where: {
+      id,
+      organizationId: selectedOrg,
+    },
+    select: {
+      name: true,
+    },
+  });
+
+  if (!deal)
+    return NextResponse.json(
+      { error: "no deleted data found" },
+      { status: 404 }
+    );
+
   const deletedDeal = await prismaInstance.deal.deleteMany({
     where: {
       id,
@@ -30,5 +46,16 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
 
-  return NextResponse.json({ succes: true, deletedDeal }, { status: 200 });
+  const createdActivity = await prismaInstance.activity.create({
+    data: {
+      description: `Deleted deal ${deal.name}`,
+      userId: auth.user.id,
+      organizationId: selectedOrg,
+    },
+  });
+
+  return NextResponse.json(
+    { succes: true, deletedDeal, createdActivity },
+    { status: 200 }
+  );
 }
