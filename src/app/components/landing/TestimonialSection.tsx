@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import UserAvatar from "../UserAvatar";
 
 // 1. Define the Testimonial type
@@ -33,15 +33,41 @@ const testimonials: Testimonial[] = [
   },
 ];
 
+const sectionVariants: Variants = {
+  hidden: { opacity: 0, y: 34 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.55, ease: "easeOut" },
+  },
+};
+
+const cardVariants: Variants = {
+  hidden: { opacity: 0, y: 28, scale: 0.96 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.45, ease: "easeOut" },
+  },
+};
+
 export default function TestimonialSection() {
   return (
-    <section className="bg-gray-100 py-16 px-4 text-center">
+    <motion.section
+      className="bg-gray-100 py-16 px-4 text-center"
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ amount: 0.25 }}
+      variants={sectionVariants}
+    >
       <h2 className="text-3xl font-bold mb-12 ">What Our Customers Say</h2>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
         {testimonials.map((testimonial, index) => (
           <motion.div
             key={index}
+            variants={cardVariants}
             whileHover={{ scale: 1.05 }}
             className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center transition"
           >
@@ -84,6 +110,6 @@ export default function TestimonialSection() {
           See more
         </Button>
       </div>
-    </section>
+    </motion.section>
   );
 }

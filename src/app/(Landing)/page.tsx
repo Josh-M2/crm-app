@@ -29,7 +29,7 @@ function LandingPageContent() {
 
   return (
     <main className="flex flex-col min-h-screen">
-      <NavBar />
+      <NavBar animateEntrance />
 
       <section id="Home">
         <HomeSection />
