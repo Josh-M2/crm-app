@@ -3,10 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
-const rawSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ??
-  process.env.VERCEL_URL ??
-  "http://localhost:3000";
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const siteUrl = rawSiteUrl.startsWith("http")
   ? rawSiteUrl
   : `https://${rawSiteUrl}`;
@@ -34,7 +31,7 @@ export const metadata: Metadata = {
     siteName: "LeadNest",
     images: [
       {
-        url: `${siteUrl}/og-image.png`,
+        url: `/og-image.png`,
         width: 1200,
         height: 630,
         alt: "LeadNest hero preview",
@@ -48,7 +45,7 @@ export const metadata: Metadata = {
     title: "LeadNest",
     description:
       "A modern CRM platform for managing leads, customers, pipelines, and sales follow-ups in one organized workspace.",
-    images: [`${siteUrl}/og-image.png`],
+    images: [`/og-image.png`],
   },
 };
 
