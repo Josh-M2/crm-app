@@ -62,7 +62,7 @@ const readResponse = (socket: net.Socket | tls.TLSSocket) =>
 
 const assertResponse = async (
   socket: net.Socket | tls.TLSSocket,
-  expectedCodes: number[]
+  expectedCodes: number[],
 ) => {
   const response = await readResponse(socket);
   const code = Number(response.slice(0, 3));
@@ -75,7 +75,7 @@ const assertResponse = async (
 const writeCommand = async (
   socket: net.Socket | tls.TLSSocket,
   command: string,
-  expectedCodes: number[]
+  expectedCodes: number[],
 ) => {
   socket.write(`${command}\r\n`);
   await assertResponse(socket, expectedCodes);
@@ -83,24 +83,30 @@ const writeCommand = async (
 
 const connect = (config: SmtpConfig) =>
   new Promise<net.Socket | tls.TLSSocket>((resolve, reject) => {
-    let socket: net.Socket | tls.TLSSocket;
-    const onConnect = () => resolve(socket);
     const onError = (error: Error) => reject(error);
-    socket =
-      config.port === 465
-        ? tls.connect(config.port, config.host, { servername: config.host }, onConnect)
-        : net.connect(config.port, config.host, onConnect);
 
+    if (config.port === 465) {
+      const socket = tls.connect(
+        config.port,
+        config.host,
+        { servername: config.host },
+        () => resolve(socket),
+      );
+      socket.once("error", onError);
+      return;
+    }
+
+    const socket = net.connect(config.port, config.host, () => resolve(socket));
     socket.once("error", onError);
   });
 
 const upgradeToTls = (
   socket: net.Socket,
-  host: string
+  host: string,
 ): Promise<tls.TLSSocket> =>
   new Promise((resolve, reject) => {
     const secureSocket = tls.connect({ socket, servername: host }, () =>
-      resolve(secureSocket)
+      resolve(secureSocket),
     );
 
     secureSocket.once("error", reject);
@@ -109,29 +115,30 @@ const upgradeToTls = (
 const createMessage = (
   from: string,
   options: SendMailOptions,
-  boundary: string
-) => [
-  `From: ${from}`,
-  `To: ${options.to}`,
-  `Subject: ${encodeHeader(options.subject)}`,
-  "MIME-Version: 1.0",
-  `Content-Type: multipart/alternative; boundary="${boundary}"`,
-  "",
-  `--${boundary}`,
-  'Content-Type: text/plain; charset="UTF-8"',
-  "Content-Transfer-Encoding: 7bit",
-  "",
-  options.text,
-  "",
-  `--${boundary}`,
-  'Content-Type: text/html; charset="UTF-8"',
-  "Content-Transfer-Encoding: 7bit",
-  "",
-  options.html,
-  "",
-  `--${boundary}--`,
-  "",
-].join("\r\n");
+  boundary: string,
+) =>
+  [
+    `From: ${from}`,
+    `To: ${options.to}`,
+    `Subject: ${encodeHeader(options.subject)}`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    options.text,
+    "",
+    `--${boundary}`,
+    'Content-Type: text/html; charset="UTF-8"',
+    "Content-Transfer-Encoding: 7bit",
+    "",
+    options.html,
+    "",
+    `--${boundary}--`,
+    "",
+  ].join("\r\n");
 
 export const getSmtpConfig = (): SmtpConfig | null => {
   const host = process.env.SMTP_HOST;
@@ -151,26 +158,39 @@ export const sendMail = async (options: SendMailOptions) => {
     throw new Error("SMTP is not configured");
   }
 
-  let socket = await connect(config);
+  const socket = await connect(config);
 
   try {
     await assertResponse(socket, [220]);
     await writeCommand(socket, `EHLO ${config.host}`, [250]);
 
-    if (config.port !== 465) {
-      await writeCommand(socket, "STARTTLS", [220]);
-      socket = await upgradeToTls(socket as net.Socket, config.host);
-      await writeCommand(socket, `EHLO ${config.host}`, [250]);
-    }
+    const activeSocket =
+      config.port !== 465
+        ? await (async () => {
+            await writeCommand(socket, "STARTTLS", [220]);
+            const secureSocket = await upgradeToTls(
+              socket as net.Socket,
+              config.host,
+            );
+            await writeCommand(secureSocket, `EHLO ${config.host}`, [250]);
+            return secureSocket;
+          })()
+        : socket;
 
-    await writeCommand(socket, "AUTH LOGIN", [334]);
-    await writeCommand(socket, Buffer.from(config.user).toString("base64"), [334]);
-    await writeCommand(socket, Buffer.from(config.password).toString("base64"), [
-      235,
-    ]);
-    await writeCommand(socket, `MAIL FROM:<${config.user}>`, [250]);
-    await writeCommand(socket, `RCPT TO:<${options.to}>`, [250, 251]);
-    await writeCommand(socket, "DATA", [354]);
+    await writeCommand(activeSocket, "AUTH LOGIN", [334]);
+    await writeCommand(
+      activeSocket,
+      Buffer.from(config.user).toString("base64"),
+      [334],
+    );
+    await writeCommand(
+      activeSocket,
+      Buffer.from(config.password).toString("base64"),
+      [235],
+    );
+    await writeCommand(activeSocket, `MAIL FROM:<${config.user}>`, [250]);
+    await writeCommand(activeSocket, `RCPT TO:<${options.to}>`, [250, 251]);
+    await writeCommand(activeSocket, "DATA", [354]);
 
     const boundary = `leadnest-${Date.now().toString(36)}`;
     const message = createMessage(
@@ -180,12 +200,12 @@ export const sendMail = async (options: SendMailOptions) => {
         html: options.html,
         text: options.text,
       },
-      boundary
+      boundary,
     );
 
-    socket.write(`${dotStuff(message)}\r\n.\r\n`);
-    await assertResponse(socket, [250]);
-    await writeCommand(socket, "QUIT", [221]);
+    activeSocket.write(`${dotStuff(message)}\r\n.\r\n`);
+    await assertResponse(activeSocket, [250]);
+    await writeCommand(activeSocket, "QUIT", [221]);
   } finally {
     socket.end();
   }
