@@ -1,7 +1,7 @@
 "use client";
 
 import SetUpOrg from "@/app/components/SetUpOrg";
-import Sidebar from "@/app/components/Sidebar";
+import { SettingsSkeleton } from "@/app/components/ProtectedPageSkeleton";
 import {
   Organization,
   useOrganization,
@@ -19,14 +19,12 @@ import {
   useDisclosure,
 } from "@heroui/react";
 
-import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
   const { selectedOrg, organizations, isLoading } = useOrganization();
   const [inputOrgNameToDelete, setInputOrgNameToDelete] = useState<string>("");
   const router = useRouter();
@@ -35,10 +33,6 @@ export default function SettingsPage() {
   const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-  const toggleSidebar = () => {
-    setIsOpenSideBar((prev) => !prev);
-  };
 
   useEffect(() => {
     if (selectedOrg && organizations) {
@@ -86,25 +80,8 @@ export default function SettingsPage() {
 
   return (
     <>
-      <div className="min-h-screen flex bg-gray-50">
-        <motion.div
-          className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-          initial={{ x: -256 }} // Start hidden on the left
-          animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpenSideBar state
-          exit={{ x: -256 }} // Same for exit animation
-          transition={{ duration: 0.01 }} // Smooth transition settings
-        >
-          <Sidebar toggleSideBar={toggleSidebar} />
-        </motion.div>
-
-        {/* Main Content */}
-        <motion.main
-          className="flex flex-col w-full p-8"
-          animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-          transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-        >
-          {!session || !session.user?.email || isLoading ? (
-            "" //loadershit here
+      {!session || !session.user?.email || isLoading ? (
+            <SettingsSkeleton />
           ) : selectedOrg && !isLoading && organizations ? (
             <>
               <div className="place-items-center mb-5">
@@ -144,19 +121,6 @@ export default function SettingsPage() {
           ) : (
             <SetUpOrg />
           )}
-        </motion.main>
-
-        {/* make this a component  */}
-
-        <button
-          onClick={toggleSidebar}
-          className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-            isOpenSideBar ? "hidden" : ""
-          }`}
-        >
-          =
-        </button>
-      </div>
 
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>

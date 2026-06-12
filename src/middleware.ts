@@ -15,6 +15,7 @@ export const config = {
     "/deals/:path*",
     "/leads/:path*",
     "/settings/:path*",
+    "/testimony/:path*",
     "/login",
     "/signup",
   ],

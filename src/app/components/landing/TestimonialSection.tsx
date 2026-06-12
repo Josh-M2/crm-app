@@ -2,34 +2,9 @@
 
 import { Button } from "@heroui/react";
 import { motion, type Variants } from "framer-motion";
-import UserAvatar from "../UserAvatar";
-
-type Testimonial = {
-  name: string;
-  title: string;
-  message: string;
-};
-
-const testimonials: Testimonial[] = [
-  {
-    name: "Marcus Chen",
-    title: "Founder at Northstar Ops",
-    message:
-      "LeadNest gave our team one place to qualify leads, assign follow-ups, and see which deals needed attention first.",
-  },
-  {
-    name: "Priya Shah",
-    title: "Marketing Manager at BrightLoop",
-    message:
-      "The handoff from marketing to sales is much clearer now. We spend less time chasing status updates and more time moving leads forward.",
-  },
-  {
-    name: "Elena Brooks",
-    title: "Sales Lead at Atlas Group",
-    message:
-      "Our pipeline reviews feel calmer because the data is easy to scan and everyone knows the next step for each account.",
-  },
-];
+import { useEffect, useState } from "react";
+import TestimonialCard from "@/app/components/testimonials/TestimonialCard";
+import type { Testimonial } from "@/app/types/testimonials";
 
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 34 },
@@ -51,6 +26,27 @@ const cardVariants: Variants = {
 };
 
 export default function TestimonialSection() {
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchTestimonials() {
+      const response = await fetch("/api/testimonials?limit=3");
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (isMounted) setTestimonials(data.testimonials || []);
+    }
+
+    fetchTestimonials();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   return (
     <motion.section
       className="bg-gray-100 py-16 px-4 text-center"
@@ -66,36 +62,13 @@ export default function TestimonialSection() {
       </p>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
-        {testimonials.map((testimonial, index) => (
+        {testimonials.map((testimonial) => (
           <motion.div
-            key={index}
+            key={testimonial.id}
             variants={cardVariants}
             whileHover={{ scale: 1.05 }}
-            className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex justify-between flex-col items-center transition"
           >
-            {/* Five stars */}
-            <div className="flex mb-4 text-yellow-400">
-              {Array.from({ length: 5 }).map((_, starIndex) => (
-                <svg
-                  key={starIndex}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                  className="w-5 h-5"
-                >
-                  <path d="M12 .587l3.668 7.431 8.2 1.191-5.934 5.787 1.402 8.172L12 18.896l-7.336 3.857 1.402-8.172L.132 9.209l8.2-1.191z" />
-                </svg>
-              ))}
-            </div>
-
-            <p className="text-gray-600 mb-6">
-              &quot;{testimonial.message}&quot;
-            </p>
-
-            <UserAvatar
-              description={testimonial.title}
-              name={testimonial.name}
-            />
+            <TestimonialCard testimonial={testimonial} />
           </motion.div>
         ))}
       </div>
@@ -103,7 +76,7 @@ export default function TestimonialSection() {
       <div>
         <Button
           as="a"
-          href="#"
+          href="/stories"
           color="primary"
           size="lg"
           className="mx-auto"

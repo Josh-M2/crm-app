@@ -20,10 +20,12 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import {
+  PageHeaderSkeleton,
+  TableSkeleton,
+} from "@/app/components/ProtectedPageSkeleton";
 import { Organization, useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
@@ -248,10 +250,8 @@ export default function LeadsPage() {
 
   const { data: session, status } = useSession();
 
-  const { selectedOrg, organizations } = useOrganization();
+  const { selectedOrg, organizations, isLoading } = useOrganization();
   const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const router = useRouter();
   const [form, setForm] = useState<LeadCategoryForm>({
     name: "",
@@ -403,26 +403,14 @@ export default function LeadsPage() {
     sendRequestToDeleteCategorizedLead
   );
 
-  if (status === "loading") return <p className="p-8">Loading...</p>;
-
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-
-      <motion.main
-        className="flex flex-col w-full p-8 container mx-auto p-6"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
-        {selectedOrg ? (
+    <>
+      {status === "loading" || isLoading ? (
+          <div className="ml-10">
+            <PageHeaderSkeleton hasAction />
+            <TableSkeleton columns={4} />
+          </div>
+        ) : selectedOrg ? (
           <>
             <div className="ml-10">
               <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
@@ -438,7 +426,7 @@ export default function LeadsPage() {
 
             {/* Table to display leads */}
             {isLoadingcategorizedLeads ? (
-              <p className="ml-10 text-gray-500">Loading lead lists...</p>
+              <TableSkeleton className="ml-10" columns={4} />
             ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
                   <Table aria-label="oraganization categorized leads">
                     <TableHeader columns={columns}>
@@ -502,15 +490,6 @@ export default function LeadsPage() {
         ) : (
           <SetUpOrg />
         )}
-      </motion.main>
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
 
       <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
         <ModalContent>
@@ -606,6 +585,6 @@ export default function LeadsPage() {
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </>
   );
 }

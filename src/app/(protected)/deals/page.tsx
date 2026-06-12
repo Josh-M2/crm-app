@@ -20,10 +20,12 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { motion } from "framer-motion";
-import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import {
+  PageHeaderSkeleton,
+  TableSkeleton,
+} from "@/app/components/ProtectedPageSkeleton";
 import { useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
@@ -46,9 +48,7 @@ export default function DealsPage() {
   const { data: session, status } = useSession();
   const componentName = useMemo(() => "LeadsPage", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-  const { selectedOrg } = useOrganization();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
+  const { selectedOrg, isLoading } = useOrganization();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [purposefunc, setPurposeFunc] = useState<ModalPurpose>("");
 
@@ -196,25 +196,14 @@ export default function DealsPage() {
     onClose();
   };
 
-  if (status === "loading") return "loading";
-
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-      <motion.main
-        className="flex flex-col w-full p-8"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
-        {selectedOrg ? (
+    <>
+      {status === "loading" || isLoading ? (
+          <div className="ml-10">
+            <PageHeaderSkeleton hasAction />
+            <TableSkeleton columns={5} />
+          </div>
+        ) : selectedOrg ? (
           <>
             <div className="ml-10">
               <div className="flex justify-between items-center mb-6">
@@ -225,9 +214,10 @@ export default function DealsPage() {
               </div>
             </div>
 
-            {isLoadingDealsData
-              ? "loading"
-              : initDealsData && (
+            {isLoadingDealsData ? (
+              <TableSkeleton className="ml-10" columns={5} />
+            ) : (
+              initDealsData && (
                   <Table aria-label="Deals Table">
                     <TableHeader columns={columns}>
                       {(column) => (
@@ -297,20 +287,12 @@ export default function DealsPage() {
                       )}
                     </TableBody>
                   </Table>
-                )}
+                )
+            )}
           </>
         ) : (
           <SetUpOrg />
         )}
-      </motion.main>
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
       {/* Add Deal Modal */} {/* Edit Deal Modal */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
@@ -436,6 +418,6 @@ export default function DealsPage() {
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </>
   );
 }

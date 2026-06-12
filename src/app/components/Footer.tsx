@@ -14,7 +14,7 @@ export default function Footer() {
         {menuItems.map((item, index) => (
           <a
             key={index}
-            href={`/${item.toLowerCase().replace(/\s+/g, "-")}`}
+            href={`/?section=${item.toLowerCase().replace(/\s+/g, "-")}`}
             className="text-gray-400 hover:text-white transition-colors"
           >
             {item}

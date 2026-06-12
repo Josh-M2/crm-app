@@ -16,6 +16,7 @@ import Image from "next/image";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
+import { ListPanelSkeleton } from "@/app/components/ProtectedPageSkeleton";
 import axiosInstance from "@/app/lib/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -91,7 +92,7 @@ const handleFetchOrgUserData = async (refData: string) => {
 
 export default function ManageUser() {
   const { data: session } = useSession();
-  const { selectedOrg } = useOrganization();
+  const { selectedOrg, isLoading } = useOrganization();
   const router = useRouter();
   const [requestData, setRequestData] = useState<OrgRequestType[]>();
   const [orgUserData, setOrgUserData] = useState<OrgUserData[]>();
@@ -210,29 +211,29 @@ export default function ManageUser() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-10 lg:mx-64">
-        <div>
-          <button
-            className="mt-5 bg-transparent hover:bg-gray-300 rounded py-3 px-5"
-            onClick={handleBackButton}
-          >
-            <Image src={arrowLeftSVG} alt="option" width={20} height={20} />
-          </button>
-          <h2 className="text-xl font-semibold py-5">
-            Manage User for this Organization
-          </h2>
-        </div>
+    <div className="px-10">
+      <div>
+        <button
+          className="mt-5 bg-transparent hover:bg-gray-300 rounded py-3 px-5"
+          onClick={handleBackButton}
+        >
+          <Image src={arrowLeftSVG} alt="option" width={20} height={20} />
+        </button>
+        <h2 className="text-xl font-semibold py-5">
+          Manage User for this Organization
+        </h2>
+      </div>
 
         <Tabs aria-label="Options" placement="top">
           <Tab key="Users" title="Users">
             <Divider className="my-4" />
 
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
-              <ul className="divide-y">
-                {!orgUserData || isLoadingOrgUserData
-                  ? "Loading organization users..."
-                  : orgUserData?.map((user) =>
+              {isLoading || !orgUserData || isLoadingOrgUserData ? (
+                <ListPanelSkeleton />
+              ) : (
+                <ul className="divide-y">
+                  {orgUserData?.map((user) =>
                       user.user.email === session?.user?.email ? null : (
                         <li
                           className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
@@ -314,16 +315,18 @@ export default function ManageUser() {
                         </li>
                       )
                     )}
-              </ul>
+                </ul>
+              )}
             </div>
           </Tab>
           <Tab key="Requests" title="Requests">
             <Divider className="my-4" />
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
-              <ul className="divide-y">
-                {isLoadingUserRequest || !requestData
-                  ? "Loading join requests..."
-                  : requestData?.map(
+              {isLoading || isLoadingUserRequest || !requestData ? (
+                <ListPanelSkeleton />
+              ) : (
+                <ul className="divide-y">
+                  {requestData?.map(
                       //to make types
                       (user) => (
                         <li
@@ -357,11 +360,11 @@ export default function ManageUser() {
                         </li>
                       )
                     )}
-              </ul>
+                </ul>
+              )}
             </div>
           </Tab>
         </Tabs>
-      </div>
     </div>
   );
 }

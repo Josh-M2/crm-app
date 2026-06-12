@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 
 import {
   LineChart,
@@ -18,20 +18,17 @@ import {
   Cell,
 } from "recharts";
 
-import { motion } from "framer-motion";
 import useSWR from "swr";
 
-import Sidebar from "@/app/components/Sidebar";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import { AnalyticsSkeleton } from "@/app/components/ProtectedPageSkeleton";
 import { useOrganization } from "@/app/context/OrganizationContext";
 import { fetchAnalyticsData } from "@/app/lib/analytics/api";
 
 const CHART_COLORS = ["#2563eb", "#059669", "#d97706", "#dc2626"];
 
 export default function AnalyticsPage() {
-  const { selectedOrg } = useOrganization();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
+  const { selectedOrg, isLoading } = useOrganization();
 
   const analyticsKey = selectedOrg
     ? `fetch-analytics-data::${selectedOrg}`
@@ -59,26 +56,13 @@ export default function AnalyticsPage() {
   if (error) return <p>Error: {error.message}</p>;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-
-      <motion.main
-        className="flex flex-col w-full p-8"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
-        {!selectedOrg ? (
+    <>
+      {isLoading ? (
+          <AnalyticsSkeleton />
+        ) : !selectedOrg ? (
           <SetUpOrg />
         ) : isLoadingAnalyticsData ? (
-          ""
+          <AnalyticsSkeleton />
         ) : (
           <>
             <div className="ml-10">
@@ -148,15 +132,6 @@ export default function AnalyticsPage() {
             </div>
           </>
         )}
-      </motion.main>
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
-    </div>
+    </>
   );
 }

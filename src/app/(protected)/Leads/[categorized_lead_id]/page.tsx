@@ -19,8 +19,7 @@ import {
   TableRow,
   useDisclosure,
 } from "@heroui/react";
-import { motion } from "framer-motion";
-import Sidebar from "@/app/components/Sidebar";
+import { TableSkeleton } from "@/app/components/ProtectedPageSkeleton";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
@@ -206,15 +205,13 @@ export default function EditLeadsPage({
 }: ProductPageProps) {
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
   const { data: session } = useSession();
-  const { selectedOrg } = useOrganization();
+  const { selectedOrg, isLoading } = useOrganization();
 
   const query = use(searchParams);
   const { categorized_lead_id } = use(params);
   const leadName = query.leadName;
   const leadTitle = typeof leadName === "string" ? leadName : "";
 
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
   const {
     isOpen: isAddOpen,
     onOpen: onAddOpen,
@@ -337,22 +334,7 @@ export default function EditLeadsPage({
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-
-      <motion.main
-        className="flex flex-col w-full p-8  mx-auto p-6"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
+    <>
         {/* Header */}
 
         <div className="flex justify-between mb-4">
@@ -372,8 +354,8 @@ export default function EditLeadsPage({
         </div>
 
         {/* Leads Table */}
-        {isLoadingListOfLeads ? (
-          <p className="ml-10 text-gray-500">Loading leads...</p>
+        {isLoading || isLoadingListOfLeads ? (
+          <TableSkeleton className="ml-10" columns={6} />
         ) : listOfLeads?.formatedLeads.length ? (
           <Table aria-label="categorize's lead list">
             <TableHeader columns={columns}>
@@ -445,16 +427,6 @@ export default function EditLeadsPage({
             No leads found.
           </div>
         )}
-      </motion.main>
-      {/* The sidebar toggle button */}
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
 
       <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
         <ModalContent>
@@ -676,6 +648,6 @@ export default function EditLeadsPage({
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </>
   );
 }

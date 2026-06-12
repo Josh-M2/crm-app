@@ -7,6 +7,7 @@ const protectedRoutePrefixes = [
   "/deals",
   "/leads",
   "/settings",
+  "/testimony",
 ];
 
 const authRoutes = ["/login", "/signup"];
