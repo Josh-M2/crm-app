@@ -5,15 +5,23 @@ import prismaInstance from "@/app/lib/prismaInstance";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    console.log("signup body: ", body);
     const { name, email, password } = body;
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
+    if (typeof password !== "string" || password.length < 12) {
+      return NextResponse.json(
+        { error: "Password must be at least 12 characters" },
+        { status: 400 }
+      );
+    }
+
     const existingUser = await prismaInstance.user.findUnique({
-      where: { email },
+      where: { email: normalizedEmail },
     });
 
     if (existingUser) {
@@ -23,13 +31,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
     const newUser = await prismaInstance.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         password: hashedPassword,
-        name,
+        name: typeof name === "string" ? name.trim() : null,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
       },
     });
 

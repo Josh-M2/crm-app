@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { protectedRoutes } from "./middleware/protectRoutes";
+import { applySecurityHeaders, rateLimitRequest } from "./middleware/security";
 
 export async function middleware(req: NextRequest) {
-  const result = await protectedRoutes(req);
-  if (result) return result;
+  const rateLimitResponse = rateLimitRequest(req);
+  if (rateLimitResponse) return applySecurityHeaders(rateLimitResponse);
 
-  return NextResponse.next();
+  const result = await protectedRoutes(req);
+  if (result) return applySecurityHeaders(result);
+
+  return applySecurityHeaders(NextResponse.next());
 }
 
 export const config = {
   matcher: [
+    "/api/:path*",
     "/analytics/:path*",
     "/dashboard/:path*",
     "/deals/:path*",

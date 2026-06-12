@@ -14,7 +14,7 @@ const handler = NextAuth({
         password: { label: "password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email;
+        const email = credentials?.email?.trim().toLowerCase();
         const password = credentials?.password;
 
         if (!email || !password) {
@@ -23,21 +23,24 @@ const handler = NextAuth({
 
         // Check if the user already exists (for login)
         const user = await prismaInstance.user.findUnique({
-          where: { email: credentials.email },
+          where: { email },
         });
 
         if (!user) {
           throw new Error("UserNotFound");
         }
 
-        console.log("useruseruser: ", user);
         // If the user exists, check the password for login
         const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {
           throw new Error("WrongPassword");
         } // Invalid password, return null
 
-        return user; // Return user object to log in
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
       },
     }),
   ],
