@@ -149,7 +149,7 @@ const handleFecthLeadsList = async (refData: string) => {
         catId: categorized_lead_id,
         selectedOrg: selectedOrg,
       },
-    }
+    },
   );
   if (response.data.error) throw new Error(`error: ${response.data.error}`);
 
@@ -165,7 +165,7 @@ const handleFecthLeadsList = async (refData: string) => {
 
 const sendRequestToCreateLead = async (
   url: string,
-  { arg }: { arg: LeadMutationArg }
+  { arg }: { arg: LeadMutationArg },
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
@@ -177,7 +177,7 @@ const sendRequestToCreateLead = async (
 
 const sendRequestToUpdateLead = async (
   url: string,
-  { arg }: { arg: LeadMutationArg }
+  { arg }: { arg: LeadMutationArg },
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
@@ -189,7 +189,7 @@ const sendRequestToUpdateLead = async (
 
 const sendRequestToDeleteCategorizedLead = async (
   url: string,
-  { arg }: { arg: DeleteLeadArg }
+  { arg }: { arg: DeleteLeadArg },
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
@@ -240,7 +240,7 @@ export default function EditLeadsPage({
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     console.log("value: ", e.target.value);
     console.log("target: ", e);
@@ -252,14 +252,15 @@ export default function EditLeadsPage({
       ? `fetch-leads-list::${session.user.email}::${selectedOrg}::${categorized_lead_id}`
       : null;
 
-  const {
-    data: listOfLeads,
-    isLoading: isLoadingListOfLeads,
-  } = useSWR(listOfLeadsKey ? listOfLeadsKey : null, handleFecthLeadsList, {
-    revalidateOnMount: true,
-    dedupingInterval: 60000,
-    revalidateIfStale: false,
-  });
+  const { data: listOfLeads, isLoading: isLoadingListOfLeads } = useSWR(
+    listOfLeadsKey ? listOfLeadsKey : null,
+    handleFecthLeadsList,
+    {
+      revalidateOnMount: true,
+      dedupingInterval: 60000,
+      revalidateIfStale: false,
+    },
+  );
 
   useEffect(() => {
     if (listOfLeads) console.log("listOfLeads: ", listOfLeads);
@@ -279,11 +280,9 @@ export default function EditLeadsPage({
     });
   };
 
-  const {
-    trigger: triggerCreateNewLead,
-  } = useSWRMutation(
+  const { trigger: triggerCreateNewLead } = useSWRMutation(
     "/leads/manage-lead-list/add-lead-item",
-    sendRequestToCreateLead
+    sendRequestToCreateLead,
   );
 
   const handleCreateNewLead = async (form: LeadForm) => {
@@ -300,11 +299,9 @@ export default function EditLeadsPage({
     setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
   };
 
-  const {
-    trigger: triggerUpdateLeadData,
-  } = useSWRMutation(
+  const { trigger: triggerUpdateLeadData } = useSWRMutation(
     "/leads/manage-lead-list/update-lead-item",
-    sendRequestToUpdateLead
+    sendRequestToUpdateLead,
   );
 
   const handleUpdateLead = async (form: LeadForm, onClose: () => void) => {
@@ -322,11 +319,9 @@ export default function EditLeadsPage({
     onClose();
   };
 
-  const {
-    trigger: triggerDeleteLead,
-  } = useSWRMutation(
+  const { trigger: triggerDeleteLead } = useSWRMutation(
     "/leads/manage-lead-list/delete-lead",
-    sendRequestToDeleteCategorizedLead
+    sendRequestToDeleteCategorizedLead,
   );
 
   if (!categorized_lead_id || !leadTitle) {
@@ -335,98 +330,96 @@ export default function EditLeadsPage({
 
   return (
     <>
-        {/* Header */}
+      {/* Header */}
 
-        <div className="flex justify-between mb-4">
-          <div>
-            <h2 className="text-3xl font-bold mb-4 ml-10">
-              Leads for {leadTitle}
-            </h2>
-            <p className="text-lg mb-8 ml-10">
-              Manage and edit the leads of {leadTitle}.
-            </p>
-          </div>
-          <div className="flex items-end">
-            <Button color="primary" onPress={onAddOpen}>
-              Add New Lead
-            </Button>
-          </div>
+      <div className="flex justify-between mb-4">
+        <div>
+          <h2 className="text-3xl font-bold mb-4 ">Leads for {leadTitle}</h2>
+          <p className="text-lg mb-8 ">
+            Manage and edit the leads of {leadTitle}.
+          </p>
         </div>
+        <div className="flex items-end">
+          <Button color="primary" onPress={onAddOpen}>
+            Add New Lead
+          </Button>
+        </div>
+      </div>
 
-        {/* Leads Table */}
-        {isLoading || isLoadingListOfLeads ? (
-          <TableSkeleton className="ml-10" columns={6} />
-        ) : listOfLeads?.formatedLeads.length ? (
-          <Table aria-label="categorize's lead list">
-            <TableHeader columns={columns}>
-              {(column) => (
-                <TableColumn key={column.key} className="text-center">
-                  {column.label}
-                </TableColumn>
-              )}
-            </TableHeader>
+      {/* Leads Table */}
+      {isLoading || isLoadingListOfLeads ? (
+        <TableSkeleton className="" columns={6} />
+      ) : listOfLeads?.formatedLeads.length ? (
+        <Table aria-label="categorize's lead list">
+          <TableHeader columns={columns}>
+            {(column) => (
+              <TableColumn key={column.key} className="text-center">
+                {column.label}
+              </TableColumn>
+            )}
+          </TableHeader>
 
-            <TableBody items={listOfLeads.formatedLeads}>
-              {(lead) => (
-                <TableRow key={lead.id}>
-                  {columns.map((column) => (
-                    <TableCell key={column.key} className="text-center">
-                      {column.key === "name" ? (
-                        lead.name
-                      ) : column.key === "company" ? (
-                        lead.company
-                      ) : column.key === "email" ? (
-                        lead.email
-                      ) : column.key === "status" ? (
-                        <span
-                          className={`px-3 py-1 rounded-full ${
-                            lead.status === "NEW"
-                              ? "bg-blue-100 text-blue-700"
-                              : lead.status === "IN_PROGRESS"
+          <TableBody items={listOfLeads.formatedLeads}>
+            {(lead) => (
+              <TableRow key={lead.id}>
+                {columns.map((column) => (
+                  <TableCell key={column.key} className="text-center">
+                    {column.key === "name" ? (
+                      lead.name
+                    ) : column.key === "company" ? (
+                      lead.company
+                    ) : column.key === "email" ? (
+                      lead.email
+                    ) : column.key === "status" ? (
+                      <span
+                        className={`px-3 py-1 rounded-full ${
+                          lead.status === "NEW"
+                            ? "bg-blue-100 text-blue-700"
+                            : lead.status === "IN_PROGRESS"
                               ? "bg-yellow-100 text-yellow-700"
                               : lead.status === "CONVERTED"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
-                          }`}
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {lead.status === "IN_PROGRESS"
+                          ? "In Progress"
+                          : capitalizeStatus(lead.status)}
+                      </span>
+                    ) : column.key === "lastInteraction" ? (
+                      lead.lastInteraction
+                    ) : column.key === "actions" ? (
+                      <div className="flex gap-2 justify-center">
+                        <Button
+                          variant="light"
+                          size="sm"
+                          onPress={() => handleEditLead(lead)}
                         >
-                          {lead.status === "IN_PROGRESS"
-                            ? "In Progress"
-                            : capitalizeStatus(lead.status)}
-                        </span>
-                      ) : column.key === "lastInteraction" ? (
-                        lead.lastInteraction
-                      ) : column.key === "actions" ? (
-                        <div className="flex gap-2 justify-center">
+                          Edit
+                        </Button>
+                        {listOfLeads.userRole === "ADMIN" && (
                           <Button
                             variant="light"
                             size="sm"
-                            onPress={() => handleEditLead(lead)}
+                            color="danger"
+                            onPress={() => handleDeleteLead(lead.id)}
                           >
-                            Edit
+                            Delete
                           </Button>
-                          {listOfLeads.userRole === "ADMIN" && (
-                            <Button
-                              variant="light"
-                              size="sm"
-                              color="danger"
-                              onPress={() => handleDeleteLead(lead.id)}
-                            >
-                              Delete
-                            </Button>
-                          )}
-                        </div>
-                      ) : null}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        ) : (
-          <div className="ml-10 rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
-            No leads found.
-          </div>
-        )}
+                        )}
+                      </div>
+                    ) : null}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className=" rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
+          No leads found.
+        </div>
+      )}
 
       <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
         <ModalContent>

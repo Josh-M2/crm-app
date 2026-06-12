@@ -11,6 +11,7 @@ import { signIn, useSession } from "next-auth/react";
 import { LoginFormTypes } from "@/app/types/auth";
 import { ErrorLoginFormTypes } from "@/app/types/auth";
 import Image from "next/image";
+import axiosInstance from "@/app/lib/axiosInstance";
 
 const loginErrorMap: Record<string, { fieldName?: string; message: string }> = {
   MissingInputs: { message: "Missing email and password" },
@@ -39,6 +40,11 @@ export default function LoginPage() {
     passwordError: "",
   });
   const [loading, setIsLoading] = useState<boolean>(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState("");
+  const [forgotSuccess, setForgotSuccess] = useState("");
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -101,6 +107,32 @@ export default function LoginPage() {
       });
     }
     setIsLoading(false);
+  };
+
+  const handleForgotPassword = async () => {
+    const emailError = validateEmail(forgotEmail);
+
+    setForgotError("");
+    setForgotSuccess("");
+
+    if (emailError) {
+      setForgotError(emailError);
+      return;
+    }
+
+    setForgotLoading(true);
+
+    try {
+      await axiosInstance.post("/auth/forgot-password", { email: forgotEmail });
+      setForgotSuccess("Password reset email sent.");
+    } catch (error: unknown) {
+      const requestError = error as AuthRequestError;
+      setForgotError(
+        requestError.response?.data?.error ?? "Unable to send reset email.",
+      );
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -176,6 +208,63 @@ export default function LoginPage() {
                 {error.passwordError}
               </label>
             )}
+            <div className="text-right !mt-2">
+              <button
+                type="button"
+                className="text-sm text-primary hover:underline"
+                onClick={() => {
+                  setForgotOpen((prev) => !prev);
+                  setForgotEmail(form.email);
+                  setForgotError("");
+                  setForgotSuccess("");
+                }}
+              >
+                Forgot password?
+              </button>
+            </div>
+            <div
+              className={`grid transition-all duration-200 ease-out ${
+                forgotOpen
+                  ? "grid-rows-[1fr] opacity-100"
+                  : "grid-rows-[0fr] opacity-0"
+              }`}
+            >
+              <div className="overflow-hidden">
+                <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                  <label
+                    className="block text-gray-700 text-sm mb-2"
+                    htmlFor="forgot-email"
+                  >
+                    Reset Password
+                  </label>
+                  <input
+                    id="forgot-email"
+                    type="email"
+                    className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    value={forgotEmail}
+                    onChange={(event) => setForgotEmail(event.target.value)}
+                    placeholder="you@example.com"
+                  />
+                  {forgotError && (
+                    <p className="mt-2 text-xs text-rose-600">{forgotError}</p>
+                  )}
+                  {forgotSuccess && (
+                    <p className="mt-2 text-xs text-green-700">
+                      {forgotSuccess}
+                    </p>
+                  )}
+                  <Button
+                    type="button"
+                    color="primary"
+                    className="mt-3 w-full"
+                    disabled={forgotLoading}
+                    onPress={handleForgotPassword}
+                  >
+                    Send reset password link
+                  </Button>
+                </div>
+              </div>
+            </div>
             <Button
               type="submit"
               color="primary"

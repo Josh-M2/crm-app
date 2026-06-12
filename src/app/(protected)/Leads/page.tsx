@@ -26,17 +26,16 @@ import {
   PageHeaderSkeleton,
   TableSkeleton,
 } from "@/app/components/ProtectedPageSkeleton";
-import { Organization, useOrganization } from "@/app/context/OrganizationContext";
+import {
+  Organization,
+  useOrganization,
+} from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
 import axiosInstance from "@/app/lib/axiosInstance";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
-import type {
-  LeadCategory,
-  OrganizationUserRole,
-  User,
-} from "@prisma/client";
+import type { LeadCategory, OrganizationUserRole, User } from "@prisma/client";
 
 type UserPreview = Pick<User, "id" | "name" | "email">;
 type LeadCategoryWithUsers = Pick<LeadCategory, "id" | "name"> & {
@@ -114,7 +113,7 @@ const columns: TableColumnDefinition[] = [
 ];
 
 const handleFetchCategorizedLeadsData = async (
-  refData: string
+  refData: string,
 ): Promise<CategorizedLeadsResponse | null> => {
   console.log("handleFetchCategorizedLeadsDataRefdata", refData);
   if (!refData) return null;
@@ -125,24 +124,23 @@ const handleFetchCategorizedLeadsData = async (
       categorizedLeads: LeadCategoryWithUsers[];
       userRole: { role: OrganizationUserRole };
     }
-  >(
-    "/leads/manage-lead-category/fetch-organization-leads",
-    {
-      params: {
-        email,
-        selectedOrg,
-      },
-    }
-  );
+  >("/leads/manage-lead-category/fetch-organization-leads", {
+    params: {
+      email,
+      selectedOrg,
+    },
+  });
   if (respone.data.error) throw new Error(`error: ${respone.data.error}`);
   console.log(
     "handleFetchCategorizedLeadsData ",
-    respone.data.categorizedLeads
+    respone.data.categorizedLeads,
   );
 
   console.log("handleFetchCategorizedLeadsData ", respone.data.userRole);
 
-  const formatedcategorizedLeadsData = formatLeadsData(respone.data.categorizedLeads);
+  const formatedcategorizedLeadsData = formatLeadsData(
+    respone.data.categorizedLeads,
+  );
   console.log("formatedcategorizedLeadsData ", formatedcategorizedLeadsData);
   return {
     formatedcategorizedLeadsData: formatedcategorizedLeadsData,
@@ -180,12 +178,8 @@ const formatOrgUserDataLeadsAgent = (apiData: OrgUserWithRole[]) => {
 };
 
 const filterLeadsData = (apiData: OrgUserWithRole[]): FilteredLeadUsers => {
-  const minerList = apiData
-    .slice()
-    .filter((lead) => lead.role === "MINER");
-  const agentList = apiData
-    .slice()
-    .filter((lead) => lead.role === "AGENT");
+  const minerList = apiData.slice().filter((lead) => lead.role === "MINER");
+  const agentList = apiData.slice().filter((lead) => lead.role === "AGENT");
   console.log("minerList: ", minerList);
   console.log("agentList: ", agentList);
 
@@ -201,7 +195,7 @@ const filterLeadsData = (apiData: OrgUserWithRole[]): FilteredLeadUsers => {
 };
 
 const handleFetchOrgUserData = async (
-  refData: string
+  refData: string,
 ): Promise<FilteredLeadUsers> => {
   if (!refData) {
     return { agentList: [], minerList: [] };
@@ -210,14 +204,11 @@ const handleFetchOrgUserData = async (
 
   const response = await axiosInstance.get<
     ApiErrorResponse & { orgUser: OrgUserWithRole[] }
-  >(
-    "/organization/fetch-org-users",
-    {
-      params: {
-        selectedOrg: selectedOrg,
-      },
-    }
-  );
+  >("/organization/fetch-org-users", {
+    params: {
+      selectedOrg: selectedOrg,
+    },
+  });
 
   if (response?.data.error) {
     throw new Error(`Error: ${response.data.error}`);
@@ -234,7 +225,7 @@ const handleFetchOrgUserData = async (
 
 const sendRequestToDeleteCategorizedLead = async (
   url: string,
-  { arg }: { arg: DeleteCategorizedLeadArg }
+  { arg }: { arg: DeleteCategorizedLeadArg },
 ) => {
   console.log("url: ", url);
   console.log("arg: ", arg);
@@ -281,10 +272,14 @@ export default function LeadsPage() {
   };
 
   // Utility function to get values from each row based on the column key
-  const getKeyValue = (item: FormattedCategorizedLead, columnKey: LeadColumnKey) => {
+  const getKeyValue = (
+    item: FormattedCategorizedLead,
+    columnKey: LeadColumnKey,
+  ) => {
     const value = item[columnKey];
     const isAssignedToCurrentUser =
-      columnKey === "assignedto" && item.assignedtoEmail === session?.user?.email;
+      columnKey === "assignedto" &&
+      item.assignedtoEmail === session?.user?.email;
 
     return `${value}${isAssignedToCurrentUser ? " (me)" : ""}` || "-";
   };
@@ -293,7 +288,7 @@ export default function LeadsPage() {
     selectedOrg: string,
     form: LeadCategoryForm,
     canAssignUser: boolean,
-    onClose: () => void
+    onClose: () => void,
   ) => {
     console.log("handleAddCategorizedLead: ", selectedOrg);
 
@@ -308,14 +303,14 @@ export default function LeadsPage() {
 
         //if user is not admin automatically set the assigned to the current miner who create the organized lead
         email: canAssignUser ? form.assignedTo : session?.user?.email,
-      }
+      },
     );
 
     if (response.data.error) throw new Error(`error: ${response.data.error}`);
 
     console.log(
       "handleAddCategorizedLead aded result: ",
-      handleAddCategorizedLead
+      handleAddCategorizedLead,
     );
 
     if (onClose) console.log("closemodal: ", onClose);
@@ -328,7 +323,7 @@ export default function LeadsPage() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     console.log("value: ", e.target.value);
     console.log("target: ", e);
@@ -367,23 +362,19 @@ export default function LeadsPage() {
       ? `fetch-leads-data::${session.user.email}::${selectedOrg}`
       : null;
 
-  const {
-    data: categorizedLeads,
-    isLoading: isLoadingcategorizedLeads,
-  } = useSWR(leadsKey ? leadsKey : null, handleFetchCategorizedLeadsData, {
-    revalidateOnMount: true,
-    dedupingInterval: 60000,
-    revalidateOnFocus: false,
-  });
+  const { data: categorizedLeads, isLoading: isLoadingcategorizedLeads } =
+    useSWR(leadsKey ? leadsKey : null, handleFetchCategorizedLeadsData, {
+      revalidateOnMount: true,
+      dedupingInterval: 60000,
+      revalidateOnFocus: false,
+    });
 
   const manageOrgUserKey =
     session?.user?.email && selectedOrg
       ? `fetch-org-user::${selectedOrg}`
       : null;
 
-  const {
-    data: manageOrgUserData,
-  } = useSWR(
+  const { data: manageOrgUserData } = useSWR(
     manageOrgUserKey ? manageOrgUserKey : null,
     handleFetchOrgUserData,
     {
@@ -393,103 +384,97 @@ export default function LeadsPage() {
       // onError: (err) => {
       //   console.error("Error fetching dashboard data:", err);
       // },
-    }
+    },
   );
 
-  const {
-    trigger: triggerDeleteCategorizedLead,
-  } = useSWRMutation(
+  const { trigger: triggerDeleteCategorizedLead } = useSWRMutation(
     "/leads/manage-lead-category/delete-categorized-lead",
-    sendRequestToDeleteCategorizedLead
+    sendRequestToDeleteCategorizedLead,
   );
 
   return (
     <>
       {status === "loading" || isLoading ? (
-          <div className="ml-10">
-            <PageHeaderSkeleton hasAction />
-            <TableSkeleton columns={4} />
-          </div>
-        ) : selectedOrg ? (
-          <>
-            <div className="ml-10">
-              <h2 className="text-3xl font-semibold mb-6 ">Leads</h2>
-
-              {/* Leads title and Add new lead button */}
-              <div className="flex justify-between mb-4">
-                <h3 className="text-xl font-bold">Lead Lists</h3>
-                <Button color="primary" onPress={onAddOpen}>
-                  Add Lead List
-                </Button>
-              </div>
+        <div className="">
+          <PageHeaderSkeleton hasAction />
+          <TableSkeleton columns={4} />
+        </div>
+      ) : selectedOrg ? (
+        <>
+          <div className="">
+            {/* Leads title and Add new lead button */}
+            <div className="flex justify-between mb-4">
+              <h2 className="text-3xl font-bold">Leads</h2>
+              <Button color="primary" onPress={onAddOpen}>
+                Add Lead List
+              </Button>
             </div>
+          </div>
 
-            {/* Table to display leads */}
-            {isLoadingcategorizedLeads ? (
-              <TableSkeleton className="ml-10" columns={4} />
-            ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
-                  <Table aria-label="oraganization categorized leads">
-                    <TableHeader columns={columns}>
-                      {(column) => (
-                        <TableColumn key={column.key} className="text-center">
-                          {column.label}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
+          {/* Table to display leads */}
+          {isLoadingcategorizedLeads ? (
+            <TableSkeleton className="" columns={4} />
+          ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
+            <Table aria-label="oraganization categorized leads">
+              <TableHeader columns={columns}>
+                {(column) => (
+                  <TableColumn key={column.key} className="text-center">
+                    {column.label}
+                  </TableColumn>
+                )}
+              </TableHeader>
 
-                    <TableBody
-                      items={categorizedLeads.formatedcategorizedLeadsData}
-                    >
-                      {(item) => (
-                        <TableRow key={item.id}>
-                          {columns.map((column) => (
-                            <TableCell key={column.key} className="text-center">
-                              {column.key === "actions" ? (
-                                <div className="flex gap-2 justify-center">
-                                  <Button
-                                    size="sm"
-                                    variant="light"
-                                    onPress={() =>
-                                      handleEditLead(item.id, item.leadName)
-                                    }
-                                  >
-                                    Edit/View
-                                  </Button>
-                                  {categorizedLeads?.userRole === "ADMIN" && (
-                                    <Button
-                                      size="sm"
-                                      variant="light"
-                                      color="danger"
-                                      // onPress={() => handleDeleteLead(item.id)}
-                                      onPress={() =>
-                                        triggerDeleteCategorizedLead({
-                                          id: item.id,
-                                          selectedOrg,
-                                        })
-                                      }
-                                    >
-                                      Delete
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : (
-                                getKeyValue(item, column.key as LeadColumnKey)
-                              )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-            ) : (
-              <div className="ml-10 rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
-                No lead lists yet.
-              </div>
-            )}
-          </>
-        ) : (
-          <SetUpOrg />
-        )}
+              <TableBody items={categorizedLeads.formatedcategorizedLeadsData}>
+                {(item) => (
+                  <TableRow key={item.id}>
+                    {columns.map((column) => (
+                      <TableCell key={column.key} className="text-center">
+                        {column.key === "actions" ? (
+                          <div className="flex gap-2 justify-center">
+                            <Button
+                              size="sm"
+                              variant="light"
+                              onPress={() =>
+                                handleEditLead(item.id, item.leadName)
+                              }
+                            >
+                              Edit/View
+                            </Button>
+                            {categorizedLeads?.userRole === "ADMIN" && (
+                              <Button
+                                size="sm"
+                                variant="light"
+                                color="danger"
+                                // onPress={() => handleDeleteLead(item.id)}
+                                onPress={() =>
+                                  triggerDeleteCategorizedLead({
+                                    id: item.id,
+                                    selectedOrg,
+                                  })
+                                }
+                              >
+                                Delete
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          getKeyValue(item, column.key as LeadColumnKey)
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className=" rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
+              No lead lists yet.
+            </div>
+          )}
+        </>
+      ) : (
+        <SetUpOrg />
+      )}
 
       <Modal isOpen={isAddOpen} onOpenChange={onAddOpenChange}>
         <ModalContent>
@@ -505,7 +490,7 @@ export default function LeadsPage() {
                       selectedOrg as string,
                       form,
                       selectedOrgData?.role === "ADMIN",
-                      onClose
+                      onClose,
                     );
                   }}
                 >

@@ -70,7 +70,7 @@ export default function TestimonyPage() {
                 maxLength={120}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="Sales Lead at Atlas Group"
+                placeholder="Sales Lead at John Doe group"
               />
 
               <Textarea

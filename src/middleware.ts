@@ -18,5 +18,6 @@ export const config = {
     "/testimony/:path*",
     "/login",
     "/signup",
+    "/reset-password",
   ],
 };

@@ -10,7 +10,7 @@ const protectedRoutePrefixes = [
   "/testimony",
 ];
 
-const authRoutes = ["/login", "/signup"];
+const authRoutes = ["/login", "/signup", "/reset-password"];
 
 const isRouteMatch = (pathname: string, route: string) =>
   pathname === route || pathname.startsWith(`${route}/`);

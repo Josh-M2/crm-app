@@ -81,7 +81,7 @@ export default function SetUpOrg() {
         {
           email: session?.user?.email,
           organizationCode: orgCode,
-        }
+        },
       );
 
       if (response) {
@@ -99,11 +99,11 @@ export default function SetUpOrg() {
 
   return (
     <div className="container mx-auto max-w-[80%] p-6">
-      <h2 className="text-3xl font-semibold mb-6">Set up Your Organization</h2>
+      <h2 className="text-3xl font-semibold mb-6">
+        Create or Join Organization
+      </h2>
 
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h3 className="text-xl font-bold mb-4">Create or Join Organization</h3>
-
         {/* Display success or error message */}
         {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
         {successMessage && <Alert color="success">{successMessage}</Alert>}
