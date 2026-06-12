@@ -629,6 +629,8 @@ The seed refreshes demo CRM data for the demo organization. It does not intentio
 ## Data Safety Notes
 
 - Never return full `User` rows from APIs unless password is intentionally excluded.
+- Auth APIs should return only safe user fields such as `id`, `email`, and `name`.
+- Normalize login/signup emails before lookup or persistence.
 - Always check organization membership before returning organization-scoped data.
 - Always filter CRM queries by `organizationId`.
 - Keep role authorization on the server/API even if the frontend hides buttons.

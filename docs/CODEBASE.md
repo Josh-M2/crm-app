@@ -42,7 +42,7 @@ npm run test:e2e
 On Windows, direct local binaries can be run with:
 
 ```powershell
-.\node_modules\.bin\tsc.cmd --noEmit
+npx tsc --noEmit
 ```
 
 ## Environment Variables
@@ -147,6 +147,12 @@ Protection helper:
 src/middleware/protectRoutes.ts
 ```
 
+Security helper:
+
+```txt
+src/middleware/security.ts
+```
+
 Protected route prefixes:
 
 ```txt
@@ -168,10 +174,45 @@ Auth routes:
 
 Behavior:
 
+- all `/api/:path*` requests pass through the security middleware
+- API requests are rate limited by client IP and path
+- sensitive auth endpoints are limited more strictly than general API endpoints
+- oversized API request bodies are rejected before route handlers run
+- baseline security headers are applied to middleware responses
 - unauthenticated users visiting protected app routes are redirected to `/login`
 - a `callbackUrl` query parameter is attached for protected redirects
 - authenticated users visiting `/login`, `/signup`, or `/reset-password` are redirected to `/dashboard`
 - nested protected routes are covered, including `/leads/[categorized_lead_id]` and `/settings/manage-users`
+
+Current API rate limits:
+
+```txt
+General API routes: 120 requests per minute per client IP and path
+Sensitive auth routes: 10 requests per minute per client IP and path
+Maximum API request body size: 1 MB
+```
+
+Sensitive auth routes:
+
+```txt
+/api/auth/callback/credentials
+/api/auth/signin
+/api/auth/signup
+/api/auth/forgot-password
+/api/auth/reset-password
+/api/auth/change-password
+```
+
+Security headers applied by middleware:
+
+```txt
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: camera=(), microphone=(), geolocation=()
+X-DNS-Prefetch-Control: off
+Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
+```
 
 ## Authentication
 
@@ -182,6 +223,7 @@ src/app/api/auth/[...nextauth]/route.ts
 ```
 
 This route handles NextAuth authentication. The app uses JWT sessions and credentials login.
+Credential login normalizes emails with `trim().toLowerCase()`, compares passwords with bcrypt, and returns only safe user fields to NextAuth.
 
 ### Signup API
 
@@ -193,10 +235,12 @@ Behavior:
 
 - accepts `name`, `email`, and `password`
 - rejects missing email/password
+- normalizes email with `trim().toLowerCase()`
+- requires passwords to be at least 12 characters
 - rejects duplicate email
-- hashes password with `bcrypt`
+- hashes password with `bcrypt` cost 12
 - creates a `User`
-- returns the created user
+- returns only safe user fields: `id`, `email`, and `name`
 
 ### Token Check API
 
@@ -600,6 +644,12 @@ src/app/components/landing/TestimonialSection.tsx
 ```
 
 ## Utility Modules
+
+```txt
+src/middleware/security.ts
+```
+
+Applies API request throttling, request body size protection, and baseline HTTP security headers.
 
 ```txt
 src/app/lib/axiosInstance.ts

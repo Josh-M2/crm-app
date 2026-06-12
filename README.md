@@ -147,6 +147,7 @@ Organization role is stored in `OrganizationUser`, not on `User`.
 Implemented:
 
 - auth
+- API rate limiting, request body limits, and security headers
 - organization onboarding
 - organization context
 - role-based organization membership checks
@@ -175,6 +176,7 @@ src/app/lib/routeAuth.ts
 src/app/context/OrganizationContext.tsx
 src/middleware.ts
 src/middleware/protectRoutes.ts
+src/middleware/security.ts
 ```
 
 For a complete file-by-file and route-by-route explanation, use `docs/CODEBASE.md`.
