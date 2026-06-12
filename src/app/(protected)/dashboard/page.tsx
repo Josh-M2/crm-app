@@ -2,7 +2,6 @@
 
 import { Card } from "@heroui/react";
 import { motion } from "framer-motion";
-import Sidebar from "@/app/components/Sidebar";
 import SetUpOrg from "@/app/components/SetUpOrg";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
@@ -14,6 +13,7 @@ import {
   formatStatsFromApi,
   formatActivitiesFromApi,
 } from "@/app/lib/dashboard/helpers";
+import { DashboardSkeleton } from "@/app/components/ProtectedPageSkeleton";
 
 import { StatsTypes, ActivityTypes } from "@/app/types/dashboard";
 
@@ -23,9 +23,6 @@ export default function DashboardPage() {
   const [initDashboardData, setInitDashboardData] = useState<StatsTypes[]>();
   const [initDashboardActivity, setInitDashboardActivity] =
     useState<ActivityTypes[]>();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
 
   const dashboardKey = selectedOrg ? `fetch-dashboard-data::${selectedOrg}` : null;
 
@@ -52,25 +49,9 @@ export default function DashboardPage() {
   if (error) return <p>Error: {error.message}</p>;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpenSideBar state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-
-      {/* Main Content */}
-      <motion.main
-        className="flex flex-col w-full p-8"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
-        {!session || !session.user?.email || isLoadingDashboardData ? (
-          "" //loadershit here
+    <>
+      {!session || !session.user?.email || isLoadingDashboardData ? (
+          <DashboardSkeleton />
         ) : selectedOrg && !isLoadingDashboardData && initDashboardData ? (
           <>
             <div className="place-items-center">
@@ -122,15 +103,6 @@ export default function DashboardPage() {
         ) : (
           <SetUpOrg />
         )}
-      </motion.main>
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
-    </div>
+    </>
   );
 }

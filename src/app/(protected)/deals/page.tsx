@@ -20,10 +20,12 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { motion } from "framer-motion";
-import Sidebar from "@/app/components/Sidebar";
 import { useSession } from "next-auth/react";
 import SetUpOrg from "@/app/components/SetUpOrg";
+import {
+  PageHeaderSkeleton,
+  TableSkeleton,
+} from "@/app/components/ProtectedPageSkeleton";
 import { useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
@@ -46,9 +48,7 @@ export default function DealsPage() {
   const { data: session, status } = useSession();
   const componentName = useMemo(() => "LeadsPage", []);
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-  const { selectedOrg } = useOrganization();
-  const [isOpenSideBar, setIsOpenSideBar] = useState<boolean>(true);
-  const toggleSidebar = () => setIsOpenSideBar((prev) => !prev);
+  const { selectedOrg, isLoading } = useOrganization();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [purposefunc, setPurposeFunc] = useState<ModalPurpose>("");
 
@@ -67,7 +67,7 @@ export default function DealsPage() {
   });
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ) => {
     console.log("value: ", e.target.value);
     console.log("target: ", e);
@@ -76,17 +76,17 @@ export default function DealsPage() {
 
   const { trigger: triggerDeleteDeal } = useSWRMutation(
     "/deals/delete-deal",
-    deleteDeal
+    deleteDeal,
   );
 
   const { trigger: triggerAddDeal } = useSWRMutation(
     "/deals/add-deal",
-    addDeal
+    addDeal,
   );
 
   const { trigger: triggerUpdateDeal } = useSWRMutation(
     "/deals/update-deal",
-    updateDeal
+    updateDeal,
   );
 
   const initDealsDataKey =
@@ -94,14 +94,15 @@ export default function DealsPage() {
       ? `fetch-deals-data::${session.user.email}::${selectedOrg}`
       : null;
 
-  const {
-    data: initDealsData,
-    isLoading: isLoadingDealsData,
-  } = useSWR(initDealsDataKey ? initDealsDataKey : null, InitDealsData, {
-    revalidateOnMount: true,
-    dedupingInterval: 60000,
-    revalidateOnFocus: false,
-  });
+  const { data: initDealsData, isLoading: isLoadingDealsData } = useSWR(
+    initDealsDataKey ? initDealsDataKey : null,
+    InitDealsData,
+    {
+      revalidateOnMount: true,
+      dedupingInterval: 60000,
+      revalidateOnFocus: false,
+    },
+  );
 
   useEffect(() => {
     if (initDealsData) console.log("initDealsData: ", initDealsData);
@@ -112,16 +113,18 @@ export default function DealsPage() {
       ? `fetch-org-user::${selectedOrg}`
       : null;
 
-  const {
-    data: manageOrgUserData,
-  } = useSWR(manageOrgUserKey ? manageOrgUserKey : null, fetchOrgUserData, {
-    dedupingInterval: 60000,
-    revalidateOnMount: true,
-    revalidateOnFocus: false,
-    // onError: (err) => {
-    //   console.error("Error fetching dashboard data:", err);
-    // },
-  });
+  const { data: manageOrgUserData } = useSWR(
+    manageOrgUserKey ? manageOrgUserKey : null,
+    fetchOrgUserData,
+    {
+      dedupingInterval: 60000,
+      revalidateOnMount: true,
+      revalidateOnFocus: false,
+      // onError: (err) => {
+      //   console.error("Error fetching dashboard data:", err);
+      // },
+    },
+  );
 
   const clearForm = () => {
     setForm({ name: "", amount: 0, status: "", owner: "" });
@@ -156,13 +159,13 @@ export default function DealsPage() {
 
       onOpen();
     },
-    [setForm, onOpen]
+    [setForm, onOpen],
   );
 
   const handleSubmitFrom = async (
     onClose: () => void,
     orgID: string,
-    data: DealsDataTypes | DealFormTypes
+    data: DealsDataTypes | DealFormTypes,
   ) => {
     console.log("handleSubmitFrom: ", data);
     switch (purposefunc) {
@@ -196,121 +199,103 @@ export default function DealsPage() {
     onClose();
   };
 
-  if (status === "loading") return "loading";
-
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <motion.div
-        className="bg-gray-800 text-white w-64 h-full fixed top-0 left-0 z-30 transition-all duration-300"
-        initial={{ x: -256 }} // Start hidden on the left
-        animate={{ x: isOpenSideBar ? 0 : -256 }} // Slide in/out based on isOpen state
-        exit={{ x: -256 }} // Same for exit animation
-        transition={{ duration: 0.01 }} // Smooth transition settings
-      >
-        <Sidebar toggleSideBar={toggleSidebar} />
-      </motion.div>
-      <motion.main
-        className="flex flex-col w-full p-8"
-        animate={{ marginLeft: isOpenSideBar ? "16rem" : "0" }} // smooth transition of margin-left (lg:ml-64)
-        transition={{ duration: 0.2 }} // Set transition duration for smooth effect
-      >
-        {selectedOrg ? (
-          <>
-            <div className="ml-10">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-3xl font-bold">Deals</h2>
-                <Button color="primary" onPress={() => handleOpenModal("add")}>
-                  Add New Deal
-                </Button>
-              </div>
+    <>
+      {status === "loading" || isLoading ? (
+        <div className="">
+          <PageHeaderSkeleton hasAction />
+          <TableSkeleton columns={5} />
+        </div>
+      ) : selectedOrg ? (
+        <>
+          <div className="">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-3xl font-bold">Deals</h2>
+              <Button color="primary" onPress={() => handleOpenModal("add")}>
+                Add New Deal
+              </Button>
             </div>
+          </div>
 
-            {isLoadingDealsData
-              ? "loading"
-              : initDealsData && (
-                  <Table aria-label="Deals Table">
-                    <TableHeader columns={columns}>
-                      {(column) => (
-                        <TableColumn key={column.key} className="text-center">
-                          {column.label}
-                        </TableColumn>
-                      )}
-                    </TableHeader>
-                    <TableBody items={initDealsData.formatedDealsData}>
-                      {(item) => (
-                        <TableRow key={item.id}>
-                          {columns.map((column: StatusTypes) => (
-                            <TableCell key={column.key} className="text-center">
-                              {column.key === "actions" ? (
-                                <div className="flex gap-2 justify-center">
-                                  <Button
-                                    size="sm"
-                                    variant="light"
-                                    onPress={() =>
-                                      handleOpenModal("edit", {
-                                        ...item,
-                                        status: item.status as
-                                          | "pending"
-                                          | "won"
-                                          | "lost",
-                                      })
-                                    }
-                                  >
-                                    Edit
-                                  </Button>
-                                  {initDealsData.userRole === "ADMIN" && (
-                                    <Button
-                                      size="sm"
-                                      variant="light"
-                                      color="danger"
-                                      onPress={() =>
-                                        triggerDeleteDeal({
-                                          id: item.id,
-                                          selectedOrg,
-                                        })
-                                      }
-                                    >
-                                      Delete
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : column.key === "amount" ? (
-                                `$${item.amount}`
-                              ) : column.label === "status" ? (
-                                <span
-                                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                                    item.status === "pending"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : item.status === "won"
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-red-100 text-red-700"
-                                  }`}
+          {isLoadingDealsData ? (
+            <TableSkeleton className="" columns={5} />
+          ) : (
+            initDealsData && (
+              <Table aria-label="Deals Table">
+                <TableHeader columns={columns}>
+                  {(column) => (
+                    <TableColumn key={column.key} className="text-center">
+                      {column.label}
+                    </TableColumn>
+                  )}
+                </TableHeader>
+                <TableBody items={initDealsData.formatedDealsData}>
+                  {(item) => (
+                    <TableRow key={item.id}>
+                      {columns.map((column: StatusTypes) => (
+                        <TableCell key={column.key} className="text-center">
+                          {column.key === "actions" ? (
+                            <div className="flex gap-2 justify-center">
+                              <Button
+                                size="sm"
+                                variant="light"
+                                onPress={() =>
+                                  handleOpenModal("edit", {
+                                    ...item,
+                                    status: item.status as
+                                      | "pending"
+                                      | "won"
+                                      | "lost",
+                                  })
+                                }
+                              >
+                                Edit
+                              </Button>
+                              {initDealsData.userRole === "ADMIN" && (
+                                <Button
+                                  size="sm"
+                                  variant="light"
+                                  color="danger"
+                                  onPress={() =>
+                                    triggerDeleteDeal({
+                                      id: item.id,
+                                      selectedOrg,
+                                    })
+                                  }
                                 >
-                                  {item.status}
-                                </span>
-                              ) : (
-                                getKeyValue(item, column.key)
+                                  Delete
+                                </Button>
                               )}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                )}
-          </>
-        ) : (
-          <SetUpOrg />
-        )}
-      </motion.main>
-      <button
-        onClick={toggleSidebar}
-        className={`absolute top-4 left-4 bg-transparent hover:bg-gray-300 py-2 px-4 rounded-md z-10 ${
-          isOpenSideBar ? "hidden" : ""
-        }`}
-      >
-        =
-      </button>
+                            </div>
+                          ) : column.key === "amount" ? (
+                            `$${item.amount}`
+                          ) : column.label === "status" ? (
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                item.status === "pending"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : item.status === "won"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                              }`}
+                            >
+                              {item.status}
+                            </span>
+                          ) : (
+                            getKeyValue(item, column.key)
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            )
+          )}
+        </>
+      ) : (
+        <SetUpOrg />
+      )}
       {/* Add Deal Modal */} {/* Edit Deal Modal */}
       <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
         <ModalContent>
@@ -390,7 +375,7 @@ export default function DealsPage() {
                       {(manageOrgUserData?.agentList ?? []).map(
                         (agent: Users) => (
                           <SelectItem key={agent.id}>{agent.name}</SelectItem>
-                        )
+                        ),
                       )}
                     </Select>
                   </div>
@@ -436,6 +421,6 @@ export default function DealsPage() {
           )}
         </ModalContent>
       </Modal>
-    </div>
+    </>
   );
 }

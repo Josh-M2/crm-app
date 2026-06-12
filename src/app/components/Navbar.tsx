@@ -14,18 +14,18 @@ import {
 } from "@heroui/react";
 import { useRouter, usePathname } from "next/navigation";
 
-export const AcmeLogo = () => {
-  return (
-    <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
-      <path
-        clipRule="evenodd"
-        d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
-        fill="currentColor"
-        fillRule="evenodd"
-      />
-    </svg>
-  );
-};
+// export const AcmeLogo = () => {
+//   return (
+//     <svg fill="none" height="36" viewBox="0 0 32 32" width="36">
+//       <path
+//         clipRule="evenodd"
+//         d="M17.6482 10.1305L15.8785 7.02583L7.02979 22.5499H10.5278L17.6482 10.1305ZM19.8798 14.0457L18.11 17.1983L19.394 19.4511H16.8453L15.1056 22.5499H24.7272L19.8798 14.0457Z"
+//         fill="currentColor"
+//         fillRule="evenodd"
+//       />
+//     </svg>
+//   );
+// };
 
 export const menuItems = [
   "Home",
@@ -35,7 +35,11 @@ export const menuItems = [
   "Integrations",
 ];
 
-export default function NavBar() {
+type NavBarProps = {
+  animateEntrance?: boolean;
+};
+
+export default function NavBar({ animateEntrance = false }: NavBarProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
   const router = useRouter();
@@ -66,7 +70,7 @@ export default function NavBar() {
       },
       {
         threshold: 0.5, // section becomes active when 60% visible
-      }
+      },
     );
 
     menuItems.forEach((id) => {
@@ -100,14 +104,23 @@ export default function NavBar() {
   };
 
   return (
-    <Navbar onMenuOpenChange={setIsMenuOpen}>
+    <Navbar
+      onMenuOpenChange={setIsMenuOpen}
+      className={`fixed left-1/2 top-4 z-[9999] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-full border border-white/30 bg-white/70 shadow-xl backdrop-blur-xl ${
+        animateEntrance ? "animate-navbar-drop-in" : ""
+      }`}
+      classNames={{
+        wrapper: "max-w-7xl",
+        menu: "z-[9999]",
+      }}
+    >
       <NavbarContent onClick={handleNavigate} className="cursor-pointer">
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"
         />
         <NavbarBrand>
-          <AcmeLogo />
+          {/* <AcmeLogo /> */}
           <p className="font-bold text-inherit">LeadNest</p>
         </NavbarBrand>
       </NavbarContent>
@@ -154,8 +167,8 @@ export default function NavBar() {
                 index === 0
                   ? "primary"
                   : index === menuItems.length - 1
-                  ? "foreground" //danger
-                  : "foreground"
+                    ? "foreground" //danger
+                    : "foreground"
               }
               href="#"
               size="lg"

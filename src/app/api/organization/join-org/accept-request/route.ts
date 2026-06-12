@@ -1,6 +1,6 @@
 import prismaInstance from "@/app/lib/prismaInstance";
 import { getOrgMembership, requireOrgRole } from "@/app/lib/routeAuth";
-import { Prisma } from "@prisma/client";
+import { NotificationType, OrganizationUserRole, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -16,7 +16,9 @@ export async function POST(req: NextRequest) {
 
     if ("response" in auth) return auth.response;
 
-    const roleError = requireOrgRole(auth.membership.role, ["ADMIN"]);
+    const roleError = requireOrgRole(auth.membership.role, [
+      OrganizationUserRole.ADMIN,
+    ]);
 
     if (roleError) return roleError;
 
@@ -28,6 +30,11 @@ export async function POST(req: NextRequest) {
       },
       select: {
         email: true,
+        organization: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
 
@@ -63,11 +70,22 @@ export async function POST(req: NextRequest) {
           create: {
             userId: userID.id,
             organizationId,
-            role: "AGENT",
+            role: OrganizationUserRole.AGENT,
           },
         });
       },
     );
+
+    await prismaInstance.notification.create({
+      data: {
+        userId: userID.id,
+        organizationId,
+        type: NotificationType.JOIN_ACCEPTED,
+        title: "Request accepted",
+        message: `Your request to join ${invite.organization.name} was accepted`,
+        href: `/dashboard/?org_name=${invite.organization.name}`,
+      },
+    });
 
     if (!updatedOrganizationuser)
       return NextResponse.json(

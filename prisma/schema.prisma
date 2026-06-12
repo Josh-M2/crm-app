@@ -12,14 +12,20 @@ model User {
   email                  String             @unique
   name                   String?
   password               String
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   activities             Activity[]
   deals                  Deal[]
   leadCategoriesAssigned LeadCategory[]     @relation("CategoryAssignee")
   leadCategoriesOwned    LeadCategory[]     @relation("CategoryOwner")
+  notifications          Notification[]
   ownedOrganizations     Organization[]     @relation("OrganizationOwner")
   organizations          OrganizationUser[]
+  testimonials           Testimonial[]
+
+  @@index([passwordResetTokenHash])
 }
 
 model Organization {
@@ -120,6 +126,36 @@ model Invite {
   organization   Organization @relation(fields: [organizationId], references: [id])
 }
 
+model Testimonial {
+  id          String   @id @default(uuid())
+  name        String
+  title       String
+  message     String
+  rating      Int      @default(5)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([isPublished, createdAt])
+}
+
+model Notification {
+  id             String           @id @default(uuid())
+  userId         String
+  organizationId String?
+  type           NotificationType
+  title          String
+  message        String
+  href           String
+  read           Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+
 enum LeadStatus {
   NEW
   IN_PROGRESS
@@ -137,4 +173,10 @@ enum OrganizationUserRole {
   AGENT
   MINER
   ADMIN
+}
+
+enum NotificationType {
+  JOIN_REQUEST
+  JOIN_ACCEPTED
+  JOIN_DECLINED
 }

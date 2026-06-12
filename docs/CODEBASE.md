@@ -52,9 +52,14 @@ The application expects these values in `.env`:
 ```txt
 DATABASE_URL
 NEXTAUTH_SECRET
+SMTP_HOST
+SMTP_PORT
+SMTP_USER
+SMTP_PASSWORD
 ```
 
 `DATABASE_URL` is used by Prisma. `NEXTAUTH_SECRET` is used by NextAuth JWT token verification.
+SMTP values are used by the password reset email flow. If they are missing, reset email delivery is treated as unconfigured.
 
 ## Top-Level Structure
 
@@ -106,11 +111,13 @@ src/app/components/landing/
 ```txt
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx
+src/app/(auth)/reset-password/page.tsx
 ```
 
 The login page uses NextAuth credentials sign-in. The signup page calls the custom signup API and then signs in using credentials.
+The login page also exposes the forgot-password flow, which sends reset links through SMTP. The reset-password page validates a token before accepting a new password.
 
-Authenticated users are redirected away from `/login` and `/signup` to `/dashboard` by middleware.
+Authenticated users are redirected away from `/login`, `/signup`, and `/reset-password` to `/dashboard` by middleware.
 
 ### Protected App Routes
 
@@ -148,6 +155,7 @@ Protected route prefixes:
 /deals
 /leads
 /settings
+/testimony
 ```
 
 Auth routes:
@@ -155,13 +163,14 @@ Auth routes:
 ```txt
 /login
 /signup
+/reset-password
 ```
 
 Behavior:
 
 - unauthenticated users visiting protected app routes are redirected to `/login`
 - a `callbackUrl` query parameter is attached for protected redirects
-- authenticated users visiting `/login` or `/signup` are redirected to `/dashboard`
+- authenticated users visiting `/login`, `/signup`, or `/reset-password` are redirected to `/dashboard`
 - nested protected routes are covered, including `/leads/[categorized_lead_id]` and `/settings/manage-users`
 
 ## Authentication
@@ -196,6 +205,17 @@ src/app/api/auth/check-token/route.ts
 ```
 
 This checks whether a NextAuth token exists and returns an unauthorized response if it does not.
+
+### Password Reset APIs
+
+```txt
+src/app/api/auth/forgot-password/route.ts
+src/app/api/auth/reset-password/route.ts
+```
+
+`forgot-password` accepts an email address, creates a short-lived reset token for matching users, and sends a reset email when SMTP is configured.
+
+`reset-password` validates reset tokens with `GET` and updates the user password with `POST`. Reset links expire after 30 minutes and are invalidated after a successful password update.
 
 ## Authorization Helpers
 
@@ -264,6 +284,9 @@ The active organization controls dashboard, analytics, leads, deals, settings, a
 ```txt
 POST /api/auth/signup
 GET  /api/auth/check-token
+POST /api/auth/forgot-password
+GET  /api/auth/reset-password
+POST /api/auth/reset-password
 *    /api/auth/[...nextauth]
 ```
 
@@ -597,6 +620,12 @@ src/app/lib/validators.ts
 Contains validation helpers for name, email, password, and repeated password.
 
 ```txt
+src/app/lib/smtp.ts
+```
+
+Contains SMTP configuration, low-level SMTP sending, and reset email content helpers for password reset delivery.
+
+```txt
 src/app/lib/inputChange.ts
 ```
 
@@ -692,6 +721,7 @@ Tests:
 tests/unit/lib/validators.test.ts
 tests/unit/lib/inputChange.test.ts
 tests/unit/lib/orgCodeGenerator.test.ts
+tests/unit/lib/smtp.test.ts
 tests/unit/lib/dashboard/helpers.test.ts
 tests/unit/lib/deals/helpers.test.ts
 ```
@@ -714,6 +744,7 @@ Tests:
 
 ```txt
 tests/e2e/auth-routes.spec.ts
+tests/e2e/password-reset.spec.ts
 ```
 
 Run:
@@ -726,6 +757,8 @@ Current e2e coverage:
 
 - unauthenticated users are redirected from `/dashboard` to `/login`
 - login page renders
+- reset password page renders
+- reset password page shows a missing token error before calling the confirmation API
 
 Playwright runs the dev server on port `3100`.
 

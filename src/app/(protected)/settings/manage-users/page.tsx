@@ -16,6 +16,7 @@ import Image from "next/image";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
+import { ListPanelSkeleton } from "@/app/components/ProtectedPageSkeleton";
 import axiosInstance from "@/app/lib/axiosInstance";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -91,12 +92,14 @@ const handleFetchOrgUserData = async (refData: string) => {
 
 export default function ManageUser() {
   const { data: session } = useSession();
-  const { selectedOrg } = useOrganization();
+  const { selectedOrg, isLoading } = useOrganization();
   const router = useRouter();
+  const [selectedTab, setSelectedTab] = useState("Users");
   const [requestData, setRequestData] = useState<OrgRequestType[]>();
   const [orgUserData, setOrgUserData] = useState<OrgUserData[]>();
-  const [, setIsAccepting] = useState<boolean>(false);
-  const [, setIsDeleting] = useState<boolean>(false);
+  const [pendingRequestIds, setPendingRequestIds] = useState<string[]>([]);
+  const [requestActionText, setRequestActionText] = useState<string>("");
+  const [requestActionError, setRequestActionError] = useState<string>("");
   const [, setIsManagingUser] = useState<boolean>(false);
 
   const manageUserRequestKey =
@@ -126,6 +129,14 @@ export default function ManageUser() {
       setRequestData(manageUserRequestData.orgIniviteData);
     }
   }, [manageUserRequestData]);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+
+    if (tab === "Requests" || tab === "Users") {
+      setSelectedTab(tab);
+    }
+  }, []);
 
   const {
     data: manageOrgUserData,
@@ -160,37 +171,74 @@ export default function ManageUser() {
     router.push("/settings");
   };
 
-  const handleAcceptRequest = async (user: OrgRequestType) => {
-    setIsAccepting(true);
-    const response = await axiosInstance.post(
-      "/organization/join-org/accept-request",
-      {
-        organizationId: selectedOrg,
-        inviteId: user.id,
-      }
-    );
-    if (response?.data?.error) {
-      throw new Error(`error: ${response.data.error}`);
-    }
-    console.log("acceptResponse", response.data);
-    setIsAccepting(false);
+  const removeRequestOptimistically = (inviteId: string) => {
+    setRequestData((prev) => prev?.filter((request) => request.id !== inviteId) ?? []);
   };
 
-  const handleDeleteRequest = async (userId: string) => {
-    console.log("clickeD!", userId);
-    setIsDeleting(true);
-    const response = await axiosInstance.post(
-      "/organization/join-org/delete-request",
-      {
-        inviteId: userId,
-        selectedOrg,
+  const handleAcceptRequest = async (user: OrgRequestType) => {
+    if (pendingRequestIds.includes(user.id)) return;
+
+    const previousRequests = requestData ?? [];
+
+    setPendingRequestIds((prev) => [...prev, user.id]);
+    setRequestActionError("");
+    setRequestActionText(`${user.email} accepted. Updating requests...`);
+    removeRequestOptimistically(user.id);
+
+    try {
+      const response = await axiosInstance.post(
+        "/organization/join-org/accept-request",
+        {
+          organizationId: selectedOrg,
+          inviteId: user.id,
+        }
+      );
+      if (response?.data?.error) {
+        throw new Error(`error: ${response.data.error}`);
       }
-    );
+      setRequestActionText(`${user.email} was accepted into the organization.`);
+    } catch (error) {
+      setRequestData(previousRequests);
+      setRequestActionText("");
+      setRequestActionError(
+        error instanceof Error ? error.message : "Unable to accept request."
+      );
+    } finally {
+      setPendingRequestIds((prev) => prev.filter((id) => id !== user.id));
+    }
+  };
 
-    if (response.data.error) throw new Error(`error: ${response.data.error}`);
+  const handleDeleteRequest = async (user: OrgRequestType) => {
+    if (pendingRequestIds.includes(user.id)) return;
 
-    console.log("handleDeleteRequest: ", response.data);
-    setIsDeleting(false);
+    const previousRequests = requestData ?? [];
+
+    setPendingRequestIds((prev) => [...prev, user.id]);
+    setRequestActionError("");
+    setRequestActionText(`${user.email} declined. Updating requests...`);
+    removeRequestOptimistically(user.id);
+
+    try {
+      const response = await axiosInstance.post(
+        "/organization/join-org/delete-request",
+        {
+          inviteId: user.id,
+          selectedOrg,
+        }
+      );
+
+      if (response.data.error) throw new Error(`error: ${response.data.error}`);
+
+      setRequestActionText(`${user.email} was declined.`);
+    } catch (error) {
+      setRequestData(previousRequests);
+      setRequestActionText("");
+      setRequestActionError(
+        error instanceof Error ? error.message : "Unable to decline request."
+      );
+    } finally {
+      setPendingRequestIds((prev) => prev.filter((id) => id !== user.id));
+    }
   };
 
   const handleManageOrgUsers = async (role: string, orgUserId: string) => {
@@ -210,29 +258,34 @@ export default function ManageUser() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="px-10 lg:mx-64">
-        <div>
-          <button
-            className="mt-5 bg-transparent hover:bg-gray-300 rounded py-3 px-5"
-            onClick={handleBackButton}
-          >
-            <Image src={arrowLeftSVG} alt="option" width={20} height={20} />
-          </button>
-          <h2 className="text-xl font-semibold py-5">
-            Manage User for this Organization
-          </h2>
-        </div>
+    <div className="px-10">
+      <div>
+        <button
+          className="mt-5 bg-transparent hover:bg-gray-300 rounded py-3 px-5"
+          onClick={handleBackButton}
+        >
+          <Image src={arrowLeftSVG} alt="option" width={20} height={20} />
+        </button>
+        <h2 className="text-xl font-semibold py-5">
+          Manage User for this Organization
+        </h2>
+      </div>
 
-        <Tabs aria-label="Options" placement="top">
+        <Tabs
+          aria-label="Options"
+          placement="top"
+          selectedKey={selectedTab}
+          onSelectionChange={(key) => setSelectedTab(String(key))}
+        >
           <Tab key="Users" title="Users">
             <Divider className="my-4" />
 
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
-              <ul className="divide-y">
-                {!orgUserData || isLoadingOrgUserData
-                  ? "Loading organization users..."
-                  : orgUserData?.map((user) =>
+              {isLoading || !orgUserData || isLoadingOrgUserData ? (
+                <ListPanelSkeleton />
+              ) : (
+                <ul className="divide-y">
+                  {orgUserData?.map((user) =>
                       user.user.email === session?.user?.email ? null : (
                         <li
                           className="flex items-center justify-between p-4 flex-wrap sm:flex-nowrap"
@@ -314,16 +367,30 @@ export default function ManageUser() {
                         </li>
                       )
                     )}
-              </ul>
+                </ul>
+              )}
             </div>
           </Tab>
           <Tab key="Requests" title="Requests">
             <Divider className="my-4" />
+            {requestActionText && (
+              <p className="mb-3 rounded border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+                {requestActionText}
+              </p>
+            )}
+            {requestActionError && (
+              <p className="mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {requestActionError}
+              </p>
+            )}
             <div className="w-full mx-auto bg-white shadow-md rounded-md max-h-[30rem] overflow-auto">
-              <ul className="divide-y">
-                {isLoadingUserRequest || !requestData
-                  ? "Loading join requests..."
-                  : requestData?.map(
+              {isLoading || isLoadingUserRequest || !requestData ? (
+                <ListPanelSkeleton />
+              ) : requestData.length === 0 ? (
+                <p className="p-4 text-sm text-gray-500">No pending requests.</p>
+              ) : (
+                <ul className="divide-y">
+                  {requestData?.map(
                       //to make types
                       (user) => (
                         <li
@@ -341,15 +408,17 @@ export default function ManageUser() {
                           <Button
                             color="danger"
                             className="mx-1"
+                            isDisabled={pendingRequestIds.includes(user.id)}
                             onPress={() => {
-                              handleDeleteRequest(user.id);
+                              handleDeleteRequest(user);
                             }}
                           >
-                            Delete
+                            Decline
                           </Button>
                           <Button
                             color="primary"
                             className="mx-1"
+                            isDisabled={pendingRequestIds.includes(user.id)}
                             onPress={() => handleAcceptRequest(user)}
                           >
                             Accept
@@ -357,11 +426,11 @@ export default function ManageUser() {
                         </li>
                       )
                     )}
-              </ul>
+                </ul>
+              )}
             </div>
           </Tab>
         </Tabs>
-      </div>
     </div>
   );
 }
