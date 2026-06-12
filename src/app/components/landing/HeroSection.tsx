@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import AnimatedGradientBackground from "./AnimatedGradientBackground";
 
 const typewriterPhrases = [
-  "Manage every lead with clarity.",
-  "Track sales without the busywork.",
-  "Collaborate with your team effortlessly.",
-  "Turn conversations into closed deals.",
+  "Capture every lead before the moment passes.",
+  "Move opportunities forward without spreadsheet clutter.",
+  "Keep sales, marketing, and support working from one view.",
+  "Turn customer conversations into confident next steps.",
 ];
 
 export default function HeroSection() {
@@ -53,7 +53,7 @@ export default function HeroSection() {
 
       <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center">
         <p className="mb-4 text-sm font-semibold text-black uppercase tracking-[0.24em]  [text-shadow:0_1px_8px_rgba(0,0,0,0.35)]">
-          Modern CRM SaaS
+          CRM built for focused revenue teams
         </p>
 
         <h1 className="max-w-3xl text-5xl font-bold leading-tight text-black sm:text-6xl lg:text-7xl [text-shadow:0_4px_24px_rgba(0,0,0,0.45)]">
@@ -71,7 +71,7 @@ export default function HeroSection() {
             size="lg"
             className="bg-[#2563EB] px-8 py-3 text-white shadow-2xl shadow-[#2563EB]/30 transition duration-300 hover:bg-[#2563EB]/90"
           >
-            Get Started
+            Start free
           </Button>
         </div>
       </div>

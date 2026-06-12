@@ -21,12 +21,13 @@ export default function CTASection() {
       viewport={{ amount: 0.35 }}
       variants={sectionVariants}
     >
-      <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
+      <h2 className="text-3xl font-bold mb-4">Ready to organize your pipeline?</h2>
       <p className="text-lg mb-6">
-        Sign up today and start managing your leads like never before.
+        Create your workspace, invite your team, and start turning lead activity
+        into clear next actions.
       </p>
       <Button as={Link} href="/signup" color="primary" size="lg">
-        Get Started
+        Start your workspace
       </Button>
     </motion.section>
   );

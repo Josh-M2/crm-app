@@ -3,27 +3,26 @@
 import { Button } from "@heroui/react";
 import { motion, type Variants } from "framer-motion";
 
-// 1. Define the Feature type
 type Feature = {
   title: string;
   description: string;
 };
 
-// 2. Strongly type the array
 const features: Feature[] = [
   {
-    title: "Lead Management",
+    title: "Organized Lead Pipeline",
     description:
-      "Track and manage your leads with a simple, intuitive dashboard.",
+      "Capture new prospects, sort them by stage, and keep every follow-up visible from a clean dashboard.",
   },
   {
-    title: "Team Collaboration",
+    title: "Shared Team Workspace",
     description:
-      "Collaborate with your team in real-time to close deals faster.",
+      "Give everyone the same customer context so handoffs, notes, and next steps stay aligned.",
   },
   {
-    title: "Analytics & Insights",
-    description: "Get detailed insights about your sales performance.",
+    title: "Actionable Sales Insights",
+    description:
+      "Spot pipeline trends, review performance, and focus your team on the opportunities most likely to close.",
   },
 ];
 
@@ -58,8 +57,8 @@ export default function FeaturesSection() {
       <div className="max-w-6xl mx-auto text-center">
         <h2 className="text-4xl font-bold mb-6">Features</h2>
         <p className="text-lg mb-12">
-          Everything you need to manage your customers, leads, and sales — all
-          in one platform.
+          Everything your team needs to manage customers, leads, and sales in
+          one reliable workspace.
         </p>
 
         <div className="flex flex-wrap justify-center gap-8 mb-12">
@@ -84,7 +83,7 @@ export default function FeaturesSection() {
           className="mx-auto"
           variant="solid"
         >
-          Explore more
+          Explore features
         </Button>
       </div>
     </motion.section>

@@ -4,32 +4,30 @@ import { Button } from "@heroui/react";
 import { motion, type Variants } from "framer-motion";
 import UserAvatar from "../UserAvatar";
 
-// 1. Define the Testimonial type
 type Testimonial = {
   name: string;
   title: string;
   message: string;
 };
 
-// 2. Strongly type the array
 const testimonials: Testimonial[] = [
   {
-    name: "John Doe",
-    title: "CEO at ExampleCorp",
+    name: "Marcus Chen",
+    title: "Founder at Northstar Ops",
     message:
-      "LeadNest has completely changed the way we handle leads. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "LeadNest gave our team one place to qualify leads, assign follow-ups, and see which deals needed attention first.",
   },
   {
-    name: "Jane Smith",
-    title: "Marketing Manager at StartupX",
+    name: "Priya Shah",
+    title: "Marketing Manager at BrightLoop",
     message:
-      "Amazing platform! Our team became 2x more productive. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "The handoff from marketing to sales is much clearer now. We spend less time chasing status updates and more time moving leads forward.",
   },
   {
-    name: "Alice Johnson",
-    title: "Sales Lead at BigCompany",
+    name: "Elena Brooks",
+    title: "Sales Lead at Atlas Group",
     message:
-      "A must-have tool for any modern business. Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+      "Our pipeline reviews feel calmer because the data is easy to scan and everyone knows the next step for each account.",
   },
 ];
 
@@ -61,7 +59,11 @@ export default function TestimonialSection() {
       viewport={{ amount: 0.25 }}
       variants={sectionVariants}
     >
-      <h2 className="text-3xl font-bold mb-12 ">What Our Customers Say</h2>
+      <h2 className="text-3xl font-bold mb-4">Trusted by growing teams</h2>
+      <p className="mx-auto mb-12 max-w-2xl text-gray-600">
+        Sales and operations teams use LeadNest to keep customer work visible,
+        accountable, and easier to repeat.
+      </p>
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-10">
         {testimonials.map((testimonial, index) => (
@@ -69,7 +71,7 @@ export default function TestimonialSection() {
             key={index}
             variants={cardVariants}
             whileHover={{ scale: 1.05 }}
-            className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col items-center transition"
+            className="bg-white p-8 rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-300 flex justify-between flex-col items-center transition"
           >
             {/* Five stars */}
             <div className="flex mb-4 text-yellow-400">
@@ -107,7 +109,7 @@ export default function TestimonialSection() {
           className="mx-auto"
           variant="solid"
         >
-          See more
+          Read stories
         </Button>
       </div>
     </motion.section>

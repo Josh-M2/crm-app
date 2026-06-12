@@ -48,9 +48,10 @@ export default function IntegrationSection() {
       variants={sectionVariants}
     >
       <div className=" mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-6 ">Seamless Integrations</h2>
+        <h2 className="text-4xl font-bold mb-6">Connect your sales stack</h2>
         <p className="text-gray-500 mb-12">
-          Connect LeadNest to your favorite tools and streamline your workflow.
+          Bring LeadNest together with the tools your team already uses for
+          messaging, reporting, campaigns, payments, and customer support.
         </p>
 
         {/* Marquee effect */}
@@ -92,7 +93,7 @@ export default function IntegrationSection() {
             className="mx-auto"
             variant="solid"
           >
-            Explore more
+            View integrations
           </Button>
         </div>
       </div>

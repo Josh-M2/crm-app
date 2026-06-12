@@ -5,7 +5,9 @@ import { menuItems } from "./Navbar";
 export default function Footer() {
   return (
     <footer className="bg-[#1E1E1E] text-white py-8 text-center">
-      <p className="mb-6">&copy; 2025 LeadNest. All rights reserved.</p>
+      <p className="mb-6">
+        &copy; 2026 LeadNest. Built for clearer customer relationships.
+      </p>
 
       {/* Menu Links */}
       <div className="flex flex-wrap justify-center gap-4 mb-6">
