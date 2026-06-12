@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: "LeadNest",
     images: [
       {
-        url: "/og-image.png",
+        url: `${siteUrl}/og-image.png`,
         width: 1200,
         height: 630,
         alt: "LeadNest hero preview",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     title: "LeadNest",
     description:
       "A modern CRM platform for managing leads, customers, pipelines, and sales follow-ups in one organized workspace.",
-    images: ["/og-image.png"],
+    images: [`${siteUrl}/og-image.png`],
   },
 };
 
