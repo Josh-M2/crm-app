@@ -6,14 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "prisma generate && next build",
     "start": "next start",
-    "lint": "next lint",
-    "db:seed": "prisma db seed",
+    "lint": "eslint .",
     "test": "vitest",
     "test:unit": "vitest run",
     "test:e2e": "playwright test"
-  },
-  "prisma": {
-    "seed": "node prisma/seed.cjs"
   },
   "dependencies": {
     "@heroui/react": "^2.7.6",
