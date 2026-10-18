@@ -40,12 +40,16 @@ Install dependencies:
 npm install
 ```
 
-Create `.env` with:
+Copy the environment template and fill in its values:
 
-```txt
-DATABASE_URL=
-NEXTAUTH_SECRET=
+```bash
+cp env.sample .env
 ```
+
+`DATABASE_URL` and `NEXTAUTH_SECRET` are required for sign-in and CRM data. Set
+`NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` to the URL where the app runs (for
+example, `http://localhost:3000` in development). SMTP variables are optional
+and are needed only to send password-reset emails. Keep `.env` out of Git.
 
 Generate Prisma Client if needed:
 
@@ -107,6 +111,13 @@ Run unit tests:
 npm run test:unit
 ```
 
+Check TypeScript and lint:
+
+```bash
+npx tsc --noEmit
+npx eslint .
+```
+
 Run Playwright e2e tests:
 
 ```bash
@@ -154,6 +165,7 @@ Implemented:
 - lead lists
 - individual leads
 - deals
+- collapsible desktop navigation and mobile navigation drawer
 - dashboard
 - analytics
 - settings/manage users

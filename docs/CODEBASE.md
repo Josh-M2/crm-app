@@ -47,11 +47,18 @@ npx tsc --noEmit
 
 ## Environment Variables
 
-The application expects these values in `.env`:
+Copy `env.sample` to `.env`. The required values are:
 
 ```txt
 DATABASE_URL
 NEXTAUTH_SECRET
+NEXTAUTH_URL
+NEXT_PUBLIC_APP_URL
+```
+
+Password-reset email delivery also uses these optional values:
+
+```txt
 SMTP_HOST
 SMTP_PORT
 SMTP_USER
@@ -59,7 +66,10 @@ SMTP_PASSWORD
 ```
 
 `DATABASE_URL` is used by Prisma. `NEXTAUTH_SECRET` is used by NextAuth JWT token verification.
-SMTP values are used by the password reset email flow. If they are missing, reset email delivery is treated as unconfigured.
+`NEXTAUTH_URL` is the app's auth callback origin, and `NEXT_PUBLIC_APP_URL` is
+used for metadata and password-reset links. SMTP values are used by the
+password reset email flow. If they are missing, reset email delivery is treated
+as unconfigured. `.env` is ignored by Git.
 
 ## Top-Level Structure
 
@@ -451,7 +461,7 @@ POST /api/leads/manage-lead-category/delete-categorized-lead
 
 The owner and assigned user must be members of the selected organization.
 
-`delete-categorized-lead` requires `ADMIN` and deletes a lead list for the selected organization.
+`delete-categorized-lead` requires `ADMIN` and deletes an empty lead list for the selected organization. It returns `409` when the list still contains leads, so those records cannot become inaccessible.
 
 ### Individual Leads
 
@@ -463,6 +473,8 @@ POST /api/leads/manage-lead-list/delete-lead
 ```
 
 Individual leads belong to an organization and may belong to a lead list through `categoryId`.
+
+`fetch-lead-list` checks that the list belongs to the selected organization and returns its name for direct links to `/leads/[categorized_lead_id]`.
 
 Create/update accepts:
 
@@ -565,6 +577,8 @@ Terminology:
 - Individual lead records map to `Lead`.
 - Lead list owner is usually an `AGENT`.
 - Assigned user is usually a `MINER`.
+- An `ADMIN` can fill either role, including in an organization without agents
+  or miners. Non-admin users are assigned to their own new lists.
 
 The main leads page shows lead lists with:
 
@@ -574,6 +588,9 @@ The main leads page shows lead lists with:
 - actions
 
 The nested page shows individual leads in that list.
+Both pages refresh their SWR data after successful changes and show mutation or
+load errors to the user. A direct link to a lead list loads its title from the
+API, so the title does not depend on a query parameter.
 
 ### Deals
 
@@ -774,6 +791,10 @@ tests/unit/lib/orgCodeGenerator.test.ts
 tests/unit/lib/smtp.test.ts
 tests/unit/lib/dashboard/helpers.test.ts
 tests/unit/lib/deals/helpers.test.ts
+tests/unit/lib/leads/validation.test.ts
+tests/unit/lib/apiError.test.ts
+tests/unit/api/leads.test.ts
+tests/unit/components/ProtectedLayout.test.tsx
 ```
 
 Run:
@@ -820,6 +841,9 @@ Playwright runs the dev server on port `3100`.
 - Organization role is stored on `OrganizationUser`, not on `User`.
 - `LeadCategory` is currently the database name for what the UI calls a "Lead List."
 - Large datasets should be fetched per page, not placed in global context.
+- The desktop sidebar stays collapsed after its toggle is clicked. On small
+  screens, navigation opens in a drawer. Organization selection is restored
+  after hydration and falls back to a membership the user still has.
 
 ## Future Work
 
@@ -832,3 +856,5 @@ Potential next steps:
 - pagination/search for large lead and deal datasets
 - more polished loading, error, and empty states across every page
 - stricter role-specific UI hiding in addition to API authorization
+- add reviewed Terms of Service and Privacy Policy pages before restoring
+  footer links
