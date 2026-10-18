@@ -840,6 +840,7 @@ Tests:
 tests/e2e/auth-routes.spec.ts
 tests/e2e/password-reset.spec.ts
 tests/e2e/mobile-navigation.spec.ts
+tests/e2e/navbar.spec.ts
 ```
 
 Run:

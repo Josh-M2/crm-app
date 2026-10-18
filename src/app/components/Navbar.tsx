@@ -103,11 +103,12 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
     <Navbar
       isMenuOpen={isMenuOpen}
       onMenuOpenChange={setIsMenuOpen}
-      className={`fixed left-1/2 top-4 z-[9999] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_15px_50px_-25px_rgba(29,45,87,0.45)] backdrop-blur-xl ${
+      style={{ "--navbar-height": "72px" } as React.CSSProperties}
+      className={`fixed left-1/2 top-4 z-[9999] h-[72px] min-h-[72px] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_15px_50px_-25px_rgba(29,45,87,0.45)] backdrop-blur-xl ${
         animateEntrance ? "animate-navbar-drop-in" : ""
       }`}
       classNames={{
-        wrapper: "max-w-7xl",
+        wrapper: "h-full max-w-7xl px-4 sm:px-6",
         menu: "z-[9999]",
       }}
     >
@@ -118,7 +119,7 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
         />
         <NavbarBrand>
           <Link href="/" color="foreground" className="flex items-center gap-2.5 font-bold tracking-tight text-slate-900">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-black text-white">L</span> LeadNest
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-base font-black text-white">L</span> LeadNest
           </Link>
         </NavbarBrand>
       </NavbarContent>
@@ -129,7 +130,7 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
             <Button
               variant="light"
               onPress={() => handleNavClick(section)}
-              className={`min-w-0 px-3 text-sm font-medium text-slate-600 transition-colors hover:text-indigo-700 ${
+              className={`min-h-10 min-w-0 px-3 text-sm font-medium text-slate-600 transition-colors hover:text-indigo-700 ${
                 activeSection === section ? "bg-indigo-50 text-indigo-700" : ""
               }`}
             >
@@ -138,19 +139,19 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
           </NavbarItem>
         ))}
         <NavbarItem>
-          <Button as={Link} variant="light" href="/contact">
+          <Button as={Link} variant="light" href="/contact" className="min-h-10 text-sm font-medium text-slate-600">
             Contact
           </Button>
         </NavbarItem>
       </NavbarContent>
       <NavbarContent justify="end">
         <NavbarItem className="hidden md:flex">
-          <Button as={Link} color="primary" href="/login" variant="light">
+          <Button as={Link} color="primary" href="/login" variant="light" className="min-h-11 font-semibold">
             Log in
           </Button>
         </NavbarItem>
         <NavbarItem>
-          <Button as={Link} color="primary" href="/signup" variant="solid" className="rounded-xl bg-indigo-600 px-5 font-semibold text-white">
+          <Button as={Link} color="primary" href="/signup" variant="solid" className="min-h-11 rounded-xl bg-indigo-600 px-5 font-semibold text-white">
             Get started
           </Button>
         </NavbarItem>
