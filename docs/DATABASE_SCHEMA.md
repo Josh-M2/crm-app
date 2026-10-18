@@ -39,6 +39,8 @@ The schema supports a multi-tenant CRM where users belong to organizations throu
 - `Deal` stores sales opportunities.
 - `Activity` stores audit/recent-activity history.
 - `Invite` stores join requests/invitations.
+- `Testimonial` stores public customer stories tied to their author, not an organization.
+- `Notification` stores user-specific join-request updates with an optional organization ID.
 - Dashboard and analytics values are derived from `Lead`, `Deal`, and `Activity`.
 - Organization role is not global on `User`; it belongs to `OrganizationUser`.
 - Every lead, deal, activity, invite, and lead category must be tied to an organization.
@@ -129,24 +131,43 @@ Important:
 
 Role is scoped per organization. The same user can have different roles in different organizations.
 
+### `NotificationType`
+
+```prisma
+enum NotificationType {
+  JOIN_REQUEST
+  JOIN_ACCEPTED
+  JOIN_DECLINED
+}
+```
+
+Used by `Notification.type`. Join requests notify organization admins; accepted
+or declined requests notify the applicant.
+
 ## Models
 
-## `User`
+### `User`
 
 ```prisma
 model User {
-  id                       String         @id @default(uuid())
-  email                    String         @unique
-  name                     String?
-  password                 String
-  createdAt                DateTime       @default(now())
-  updatedAt                DateTime       @updatedAt
-  organizations            OrganizationUser[]
-  ownedOrganizations       Organization[] @relation("OrganizationOwner")
-  leadCategoriesOwned      LeadCategory[] @relation("CategoryOwner")
-  leadCategoriesAssigned   LeadCategory[] @relation("CategoryAssignee")
-  deals                    Deal[]
-  activities               Activity[]
+  id                     String             @id @default(uuid())
+  email                  String             @unique
+  name                   String?
+  password               String
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  activities             Activity[]
+  deals                  Deal[]
+  leadCategoriesAssigned LeadCategory[]     @relation("CategoryAssignee")
+  leadCategoriesOwned    LeadCategory[]     @relation("CategoryOwner")
+  notifications          Notification[]
+  ownedOrganizations     Organization[]     @relation("OrganizationOwner")
+  organizations          OrganizationUser[]
+  testimonials           Testimonial[]
+
+  @@index([passwordResetTokenHash])
 }
 ```
 
@@ -160,6 +181,8 @@ Fields:
 - `email`: unique login email
 - `name`: optional display name
 - `password`: bcrypt-hashed password
+- `passwordResetTokenHash`: optional SHA-256 hash of a one-time reset token
+- `passwordResetExpiresAt`: optional reset-token expiry
 - `createdAt`: creation timestamp
 - `updatedAt`: automatic update timestamp
 
@@ -171,12 +194,16 @@ Relations:
 - `leadCategoriesAssigned`: lead lists assigned to this user
 - `deals`: deals owned by this user
 - `activities`: activities performed by this user
+- `notifications`: notifications addressed to this user
+- `testimonials`: stories submitted by this user
 
 Security note:
 
-API responses should never return the full user record when not needed because it includes `password`.
+API responses should never return the full user record when not needed because
+it includes `password` and password-reset fields. Reset links expire after 30
+minutes; successful password resets clear both reset fields.
 
-## `Organization`
+### `Organization`
 
 ```prisma
 model Organization {
@@ -224,7 +251,7 @@ Business rules:
 - Organization owner should not be removed or demoted through manage-users.
 - All CRM data should be filtered by `organizationId`.
 
-## `OrganizationUser`
+### `OrganizationUser`
 
 ```prisma
 model OrganizationUser {
@@ -260,7 +287,7 @@ Business rules:
 - A user must have an `OrganizationUser` row to access organization data.
 - Role changes happen here, not on `User`.
 
-## `LeadCategory`
+### `LeadCategory`
 
 ```prisma
 model LeadCategory {
@@ -306,7 +333,7 @@ Business rules:
 - Owner and assigned user must belong to the selected organization.
 - UI label should say "Lead List" even though the model name is `LeadCategory`.
 
-## `Lead`
+### `Lead`
 
 ```prisma
 model Lead {
@@ -355,7 +382,7 @@ Business rules:
 - Leads can be displayed inside `/leads/[categorized_lead_id]`.
 - Deleting a lead logs an activity without preserving a foreign key to the deleted lead.
 
-## `Deal`
+### `Deal`
 
 ```prisma
 model Deal {
@@ -401,7 +428,7 @@ Business rules:
 - Dashboard and analytics revenue use `WON`.
 - Deleting a deal logs an activity without preserving a foreign key to the deleted deal.
 
-## `Activity`
+### `Activity`
 
 ```prisma
 model Activity {
@@ -465,7 +492,7 @@ Current logged actions:
 - user role changed
 - user removed from organization
 
-## `Invite`
+### `Invite`
 
 ```prisma
 model Invite {
@@ -503,6 +530,58 @@ Business rules:
 - Accepting creates or reuses an `OrganizationUser` membership.
 - Accepted users currently receive role `AGENT`.
 
+### `Testimonial`
+
+```prisma
+model Testimonial {
+  id          String   @id @default(uuid())
+  name        String
+  title       String
+  message     String
+  rating      Int      @default(5)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([isPublished, createdAt])
+}
+```
+
+Stores a customer story submitted by a signed-in user. `name` is a snapshot of
+the user's display name or email; `userId` keeps the author relation. Public
+queries return only published stories, newest first. The API validates a title
+up to 120 characters, message from 20 to 600 characters, and rating from 1 to
+5. New submissions are currently published immediately. Testimonials are not
+organization-scoped.
+
+### `Notification`
+
+```prisma
+model Notification {
+  id             String           @id @default(uuid())
+  userId         String
+  organizationId String?
+  type           NotificationType
+  title          String
+  message        String
+  href           String
+  read           Boolean          @default(false)
+  createdAt      DateTime         @default(now())
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read, createdAt])
+}
+```
+
+Stores an update addressed to one user. `organizationId` is optional context
+for the sidebar to switch workspaces; it is a string and has no Prisma relation
+to `Organization`. `href` is the destination after opening the notification.
+The API lists only the signed-in user's 20 newest notifications and can mark
+only that user's notification as read. Deleting a user cascades to their
+notifications.
+
 ## Relationship Map
 
 ```txt
@@ -538,6 +617,13 @@ Activity many -> 0 or 1 Deal
 
 Organization 1 -> many Invite
 Invite many -> 1 Organization
+
+User 1 -> many Testimonial
+Testimonial many -> 1 User
+
+User 1 -> many Notification
+Notification many -> 1 User
+Notification.organizationId is optional context, not a foreign key
 ```
 
 ## Derived Data
@@ -590,50 +676,32 @@ Data rules:
 - `leadsByStatus`: leads grouped by `status`
 - `monthlyNewLeads`: leads grouped by `createdAt` month
 
-## Seed Data
+## Migrations and Initial Data
 
-Seed file:
+Committed migrations live in `prisma/migrations/`:
 
-```txt
-prisma/seed.cjs
-```
+- `0_init`: initial users, organizations, leads, deals, activity, and invites
+- `20260612000000_add_testimonials`: customer stories
+- `20260612190000_add_notifications`: join-request notifications
+- `20260612210000_add_password_reset_fields`: reset token hash and expiry
 
-Seed command:
-
-```bash
-npm run db:seed
-```
-
-Seeded demo values:
-
-```txt
-Organization: LeadNest Demo CRM
-Organization code: leadnest_demo
-Admin email: admin@leadnest.test
-Admin password: Password123456
-```
-
-Seed creates:
-
-- one demo organization
-- one admin user
-- two agent users
-- two miner users
-- three lead lists
-- ten individual leads
-- six deals
-- activity history for dashboard/recent activity
-
-The seed refreshes demo CRM data for the demo organization. It does not intentionally delete unrelated organizations.
+For a new database, run `npx prisma migrate deploy` followed by
+`npx prisma generate`. Check an existing database with
+`npx prisma migrate status` before applying migrations. The repository does
+not contain a seed script or demo credentials. Create an account through
+`/signup`, then create or join an organization.
 
 ## Data Safety Notes
 
 - Never return full `User` rows from APIs unless password is intentionally excluded.
+- Do not expose password-reset token hashes or expiry fields in API responses.
 - Auth APIs should return only safe user fields such as `id`, `email`, and `name`.
 - Normalize login/signup emails before lookup or persistence.
 - Always check organization membership before returning organization-scoped data.
 - Always filter CRM queries by `organizationId`.
 - Keep role authorization on the server/API even if the frontend hides buttons.
+- Filter notifications by the authenticated `userId`; `organizationId` on a
+  notification is navigation context, not a membership check.
 - Avoid storing dashboard/analytics snapshots unless a future reporting feature specifically requires it.
 
 ## Future Schema Considerations
