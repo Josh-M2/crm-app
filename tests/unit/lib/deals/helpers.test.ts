@@ -62,7 +62,7 @@ describe("deal helpers", () => {
     ] satisfies FilterOrgUsersDataTypes[];
 
     expect(filterOrgUsersData(orgUsers)).toEqual({
-      agentList: [{ id: "agent-1", name: "Ava" }],
+      agentList: [{ id: "agent-1", name: "Ava" }, { id: "admin-1", name: "Admin" }],
       minerList: [{ id: "miner-1", name: "Unknown user" }],
     });
   });

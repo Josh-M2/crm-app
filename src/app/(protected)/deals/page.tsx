@@ -42,6 +42,7 @@ import {
 } from "@/app/types/deals";
 import { fetchOrgUserData, InitDealsData } from "@/app/lib/deals/api";
 import { addDeal, deleteDeal, updateDeal } from "@/app/lib/deals/mutations";
+import { getApiErrorMessage } from "@/app/lib/apiError";
 import { columns, statusSelect } from "@/app/lib/deals/constants";
 
 export default function DealsPage() {
@@ -51,6 +52,9 @@ export default function DealsPage() {
   const { selectedOrg, isLoading } = useOrganization();
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [purposefunc, setPurposeFunc] = useState<ModalPurpose>("");
+  const [actionError, setActionError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [form, setForm] = useState<DealFormTypes>({
     name: "",
@@ -94,7 +98,7 @@ export default function DealsPage() {
       ? `fetch-deals-data::${session.user.email}::${selectedOrg}`
       : null;
 
-  const { data: initDealsData, isLoading: isLoadingDealsData } = useSWR(
+  const { data: initDealsData, error: dealsError, isLoading: isLoadingDealsData, mutate: refreshDeals } = useSWR(
     initDealsDataKey ? initDealsDataKey : null,
     InitDealsData,
     {
@@ -132,6 +136,7 @@ export default function DealsPage() {
 
   const handleOpenModal = useCallback(
     (purpose: ModalPurpose, userdata?: DealsDataTypes) => {
+      setActionError("");
       console.log("userdata: ", userdata);
       setPurposeFunc(purpose as "add" | "edit");
       switch (purpose) {
@@ -167,36 +172,59 @@ export default function DealsPage() {
     orgID: string,
     data: DealsDataTypes | DealFormTypes,
   ) => {
-    console.log("handleSubmitFrom: ", data);
-    switch (purposefunc) {
-      case "edit":
-        await triggerUpdateDeal({
-          dealId: data.id as string,
-          selectedOrg: orgID,
-          name: data.name,
-          amount: data.amount,
-          status: data.status as statusStrings,
-          ownerId: data.owner,
-        });
-        clearForm();
-        break;
-      case "add":
-        await triggerAddDeal({
-          selectedOrg: orgID,
-          name: data.name,
-          amount: data.amount,
-          status: data.status as statusStrings,
-          userid: data.owner,
-        });
-
-        clearForm();
-        break;
-
-      default:
-        break;
+    setActionError("");
+    const amount = Number(data.amount);
+    if (!data.name.trim() || !Number.isFinite(amount) || amount <= 0 || !data.owner || !data.status) {
+      setActionError("Enter a deal name, positive amount, owner, and status.");
+      return;
     }
 
-    onClose();
+    setIsSubmitting(true);
+    try {
+      switch (purposefunc) {
+        case "edit":
+          await triggerUpdateDeal({
+            dealId: data.id as string,
+            selectedOrg: orgID,
+            name: data.name,
+            amount,
+            status: data.status as statusStrings,
+            ownerId: data.owner,
+          });
+          break;
+        case "add":
+          await triggerAddDeal({
+            selectedOrg: orgID,
+            name: data.name,
+            amount,
+            status: data.status as statusStrings,
+            userid: data.owner,
+          });
+          break;
+        default:
+          return;
+      }
+      await refreshDeals();
+      clearForm();
+      onClose();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to save the deal."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteDeal = async (id: string) => {
+    setActionError("");
+    setDeletingId(id);
+    try {
+      await triggerDeleteDeal({ id, selectedOrg: selectedOrg as string });
+      await refreshDeals();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to delete the deal."));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -215,10 +243,19 @@ export default function DealsPage() {
                 Add New Deal
               </Button>
             </div>
+            {actionError && !isOpen && (
+              <p role="alert" className="mb-4 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {actionError}
+              </p>
+            )}
           </div>
 
           {isLoadingDealsData ? (
             <TableSkeleton className="" columns={5} />
+          ) : dealsError ? (
+            <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              Unable to load deals. Please try again.
+            </p>
           ) : (
             initDealsData && (
               <Table aria-label="Deals Table">
@@ -256,12 +293,8 @@ export default function DealsPage() {
                                   size="sm"
                                   variant="light"
                                   color="danger"
-                                  onPress={() =>
-                                    triggerDeleteDeal({
-                                      id: item.id,
-                                      selectedOrg,
-                                    })
-                                  }
+                                  isLoading={deletingId === item.id}
+                                  onPress={() => handleDeleteDeal(item.id)}
                                 >
                                   Delete
                                 </Button>
@@ -305,6 +338,11 @@ export default function DealsPage() {
                 {purposefunc === "edit" ? "Edit Deal" : "Add New Deal"}
               </ModalHeader>
               <ModalBody>
+                {actionError && (
+                  <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    {actionError}
+                  </p>
+                )}
                 <form
                   className="space-y-6"
                   onSubmit={async (e) => {
@@ -315,7 +353,7 @@ export default function DealsPage() {
                 >
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Deal name"
                       type="text"
                       id="name"
@@ -340,9 +378,11 @@ export default function DealsPage() {
 
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Amount $"
                       type="number"
+                      min={0.01}
+                      step={0.01}
                       id="amount"
                       name="amount"
                       color={error.amountError ? "danger" : "default"}
@@ -367,7 +407,7 @@ export default function DealsPage() {
                     <Select
                       isRequired
                       className="max-w-xs"
-                      label="Select an Agent"
+                      label="Owner"
                       name="owner"
                       selectedKeys={[form.owner]}
                       onChange={handleChange}
@@ -382,7 +422,7 @@ export default function DealsPage() {
 
                   <div>
                     <Select
-                      // isRequired
+                      isRequired
                       className="max-w-xs"
                       label="Select status"
                       name="status"
@@ -402,6 +442,7 @@ export default function DealsPage() {
                     <Button
                       color="primary"
                       type="submit"
+                      isLoading={isSubmitting}
                       // onPress={handleAddCategorizedLead(selectedOrg, form)}
                     >
                       Confirm

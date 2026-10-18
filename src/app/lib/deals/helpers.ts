@@ -34,7 +34,7 @@ export const filterOrgUsersData = (
     list.map((user) => ({ id: user.user.id, name: user.user.name ?? "Unknown user" }));
 
   return {
-    agentList: format(apiData.filter((u) => u.role === "AGENT")),
+    agentList: format(apiData.filter((u) => u.role === "AGENT" || u.role === "ADMIN")),
     minerList: format(apiData.filter((u) => u.role === "MINER")),
   };
 };
