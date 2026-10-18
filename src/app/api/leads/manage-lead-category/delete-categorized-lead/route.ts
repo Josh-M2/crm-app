@@ -33,6 +33,16 @@ export async function POST(req: NextRequest) {
       { status: 404 }
     );
 
+  const leadCount = await prismaInstance.lead.count({
+    where: { categoryId: id, organizationId: selectedOrg },
+  });
+
+  if (leadCount > 0)
+    return NextResponse.json(
+      { error: "Delete the leads in this list first" },
+      { status: 409 }
+    );
+
   const deletedCategorziedLead = await prismaInstance.leadCategory.deleteMany({
     where: {
       id,

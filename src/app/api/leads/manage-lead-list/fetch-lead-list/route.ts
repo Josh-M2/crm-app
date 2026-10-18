@@ -15,6 +15,14 @@ export async function GET(req: NextRequest) {
 
   if ("response" in auth) return auth.response;
 
+  const category = await prismaInstance.leadCategory.findFirst({
+    where: { id: catid, organizationId: selectedOrg },
+    select: { name: true },
+  });
+
+  if (!category)
+    return NextResponse.json({ error: "no lead list found" }, { status: 404 });
+
   const leadList = await prismaInstance.lead.findMany({
     where: {
       categoryId: catid,
@@ -22,12 +30,8 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  if (leadList === undefined) {
-    return NextResponse.json({ error: "no lead list found" }, { status: 404 });
-  }
-
   return NextResponse.json(
-    { leadList, userRole: auth.membership },
+    { leadList, categoryName: category.name, userRole: auth.membership },
     { status: 200 }
   );
 }

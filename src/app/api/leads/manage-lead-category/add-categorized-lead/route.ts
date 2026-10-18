@@ -3,10 +3,16 @@ import { getOrgMembership, isOrgUser } from "@/app/lib/routeAuth";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { email, categoryName, selectedOrg, ownerId } = body;
+  const body = await req.json().catch(() => null);
+  if (!body || typeof body !== "object")
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
 
-  if (!categoryName || !selectedOrg || !ownerId) {
+  const { assignedUserId, categoryName, selectedOrg, ownerId } = body;
+
+  if (typeof categoryName !== "string" || !categoryName.trim() ||
+      typeof selectedOrg !== "string" || !selectedOrg ||
+      typeof ownerId !== "string" || !ownerId ||
+      (assignedUserId !== undefined && (typeof assignedUserId !== "string" || !assignedUserId))) {
     return NextResponse.json({ error: "Missing fields" }, { status: 400 });
   }
 
@@ -21,7 +27,7 @@ export async function POST(req: NextRequest) {
   }
 
   const assignedToId =
-    auth.membership.role === "ADMIN" && email ? email : auth.user.id;
+    auth.membership.role === "ADMIN" && assignedUserId ? assignedUserId : auth.user.id;
 
   const assignedUserIsOrgUser = await isOrgUser(assignedToId, selectedOrg);
 
@@ -31,7 +37,7 @@ export async function POST(req: NextRequest) {
 
   const addedCategorizedLead = await prismaInstance.leadCategory.create({
     data: {
-      name: categoryName,
+      name: categoryName.trim(),
       ownerId,
       assignedToId,
       organizationId: selectedOrg,

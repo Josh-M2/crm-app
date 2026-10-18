@@ -20,10 +20,12 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { TableSkeleton } from "@/app/components/ProtectedPageSkeleton";
+import SetUpOrg from "@/app/components/SetUpOrg";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
 import axiosInstance from "@/app/lib/axiosInstance";
+import { getApiErrorMessage } from "@/app/lib/apiError";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
@@ -74,6 +76,7 @@ type DeleteLeadArg = {
 
 type LeadListApiResponse = {
   leadList: PrismaLead[];
+  categoryName: string;
   userRole: { role: OrganizationUserRole };
   error?: string;
 };
@@ -159,6 +162,7 @@ const handleFecthLeadsList = async (refData: string) => {
   console.log("formatedLeads: ", formatedLeads);
   return {
     formatedLeads: formatedLeads,
+    categoryName: response.data.categoryName,
     userRole: response.data.userRole.role,
   };
 };
@@ -204,13 +208,13 @@ export default function EditLeadsPage({
   searchParams,
 }: ProductPageProps) {
   const errorImageURL = useMemo(() => "/circle-exclamation-solid.svg", []);
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { selectedOrg, isLoading } = useOrganization();
 
   const query = use(searchParams);
   const { categorized_lead_id } = use(params);
   const leadName = query.leadName;
-  const leadTitle = typeof leadName === "string" ? leadName : "";
+  const queryLeadTitle = typeof leadName === "string" ? leadName : "";
 
   const {
     isOpen: isAddOpen,
@@ -238,6 +242,10 @@ export default function EditLeadsPage({
     emailError: "",
     statusError: "",
   });
+  const [actionError, setActionError] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -252,7 +260,7 @@ export default function EditLeadsPage({
       ? `fetch-leads-list::${session.user.email}::${selectedOrg}::${categorized_lead_id}`
       : null;
 
-  const { data: listOfLeads, isLoading: isLoadingListOfLeads } = useSWR(
+  const { data: listOfLeads, isLoading: isLoadingListOfLeads, error: leadListError, mutate: refreshLeadList } = useSWR(
     listOfLeadsKey ? listOfLeadsKey : null,
     handleFecthLeadsList,
     {
@@ -262,6 +270,8 @@ export default function EditLeadsPage({
     },
   );
 
+  const leadTitle = listOfLeads?.categoryName ?? queryLeadTitle;
+
   useEffect(() => {
     if (listOfLeads) console.log("listOfLeads: ", listOfLeads);
   }, [listOfLeads]);
@@ -270,14 +280,21 @@ export default function EditLeadsPage({
     // Navigate to the edit page for this lead ID
     console.log("form: ", form);
     setForm(form);
+    setActionError("");
     onEditOpen();
   };
 
-  const handleDeleteLead = (id: string) => {
-    triggerDeleteLead({
-      id,
-      selectedOrg,
-    });
+  const handleDeleteLead = async (id: string) => {
+    setActionError("");
+    setDeletingId(id);
+    try {
+      await triggerDeleteLead({ id, selectedOrg });
+      await refreshLeadList();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to delete the lead."));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const { trigger: triggerCreateNewLead } = useSWRMutation(
@@ -285,18 +302,26 @@ export default function EditLeadsPage({
     sendRequestToCreateLead,
   );
 
-  const handleCreateNewLead = async (form: LeadForm) => {
-    await triggerCreateNewLead({
-      organizationId: selectedOrg, //organization ID
-      categoryId: categorized_lead_id,
-
-      name: form.name,
-      company: form.company,
-      leadEmail: form.email,
-      status: form.status,
-    });
-
-    setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
+  const handleCreateNewLead = async (form: LeadForm, onClose: () => void) => {
+    setActionError("");
+    setIsAdding(true);
+    try {
+      await triggerCreateNewLead({
+        organizationId: selectedOrg,
+        categoryId: categorized_lead_id,
+        name: form.name,
+        company: form.company,
+        leadEmail: form.email,
+        status: form.status,
+      });
+      await refreshLeadList();
+      setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
+      onClose();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to add the lead."));
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const { trigger: triggerUpdateLeadData } = useSWRMutation(
@@ -305,18 +330,26 @@ export default function EditLeadsPage({
   );
 
   const handleUpdateLead = async (form: LeadForm, onClose: () => void) => {
-    await triggerUpdateLeadData({
-      organizationId: selectedOrg, //organization ID
-      categoryId: categorized_lead_id,
-
-      leadId: form.id,
-      name: form.name,
-      company: form.company,
-      leadEmail: form.email,
-      status: form.status,
-    });
-    setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
-    onClose();
+    setActionError("");
+    setIsUpdating(true);
+    try {
+      await triggerUpdateLeadData({
+        organizationId: selectedOrg,
+        categoryId: categorized_lead_id,
+        leadId: form.id,
+        name: form.name,
+        company: form.company,
+        leadEmail: form.email,
+        status: form.status,
+      });
+      await refreshLeadList();
+      setForm({ id: "", name: "", company: "", email: "", status: "NEW" });
+      onClose();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to update the lead."));
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const { trigger: triggerDeleteLead } = useSWRMutation(
@@ -324,8 +357,14 @@ export default function EditLeadsPage({
     sendRequestToDeleteCategorizedLead,
   );
 
-  if (!categorized_lead_id || !leadTitle) {
-    return <div>Error: No lead list found in the query parameters.</div>;
+  if (status === "loading" || isLoading || (selectedOrg && isLoadingListOfLeads)) {
+    return <TableSkeleton columns={6} />;
+  }
+
+  if (!selectedOrg) return <SetUpOrg />;
+
+  if (!categorized_lead_id || leadListError) {
+    return <div role="alert">{leadListError ? getApiErrorMessage(leadListError, "Unable to load this lead list.") : "No lead list found."}</div>;
   }
 
   return (
@@ -340,11 +379,16 @@ export default function EditLeadsPage({
           </p>
         </div>
         <div className="flex items-end">
-          <Button color="primary" onPress={onAddOpen}>
+          <Button color="primary" onPress={() => { setActionError(""); onAddOpen(); }}>
             Add New Lead
           </Button>
         </div>
       </div>
+      {actionError && !isAddOpen && !isEditOpen && (
+        <p role="alert" className="mb-4 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+          {actionError}
+        </p>
+      )}
 
       {/* Leads Table */}
       {isLoading || isLoadingListOfLeads ? (
@@ -402,6 +446,7 @@ export default function EditLeadsPage({
                             variant="light"
                             size="sm"
                             color="danger"
+                            isLoading={deletingId === lead.id}
                             onPress={() => handleDeleteLead(lead.id)}
                           >
                             Delete
@@ -427,16 +472,21 @@ export default function EditLeadsPage({
             <>
               <ModalHeader>Add Lead</ModalHeader>
               <ModalBody>
+                {actionError && (
+                  <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    {actionError}
+                  </p>
+                )}
                 <form
                   className="space-y-6"
                   onSubmit={(e) => {
                     e.preventDefault();
-                    handleCreateNewLead(form);
+                    handleCreateNewLead(form, onClose);
                   }}
                 >
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Name"
                       type="text"
                       id="name"
@@ -460,7 +510,7 @@ export default function EditLeadsPage({
                   )}
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Company"
                       type="text"
                       id="company"
@@ -486,9 +536,9 @@ export default function EditLeadsPage({
 
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Email"
-                      type="text"
+                      type="email"
                       id="email"
                       name="email"
                       color={error.emailError ? "danger" : "default"}
@@ -513,7 +563,7 @@ export default function EditLeadsPage({
                     <Button variant="light" onPress={onClose}>
                       Cancel
                     </Button>
-                    <Button color="primary" type="submit">
+                    <Button color="primary" type="submit" isLoading={isAdding}>
                       Add Lead
                     </Button>
                   </ModalFooter>
@@ -530,6 +580,11 @@ export default function EditLeadsPage({
             <>
               <ModalHeader>Update Lead</ModalHeader>
               <ModalBody>
+                {actionError && (
+                  <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    {actionError}
+                  </p>
+                )}
                 <form
                   className="space-y-6"
                   onSubmit={(e) => {
@@ -539,7 +594,7 @@ export default function EditLeadsPage({
                 >
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Name"
                       type="text"
                       id="name"
@@ -563,7 +618,7 @@ export default function EditLeadsPage({
                   )}
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Company"
                       type="text"
                       id="company"
@@ -589,9 +644,9 @@ export default function EditLeadsPage({
 
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="Email"
-                      type="text"
+                      type="email"
                       id="email"
                       name="email"
                       color={error.emailError ? "danger" : "default"}
@@ -614,7 +669,7 @@ export default function EditLeadsPage({
 
                   <div>
                     <Select
-                      // isRequired
+                      isRequired
                       className="max-w-xs"
                       label="Status"
                       name="status"
@@ -631,7 +686,7 @@ export default function EditLeadsPage({
                     <Button variant="light" onPress={onClose}>
                       Cancel
                     </Button>
-                    <Button color="primary" type="submit">
+                    <Button color="primary" type="submit" isLoading={isUpdating}>
                       Update Lead
                     </Button>
                   </ModalFooter>

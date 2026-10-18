@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Button,
   Input,
@@ -26,13 +26,11 @@ import {
   PageHeaderSkeleton,
   TableSkeleton,
 } from "@/app/components/ProtectedPageSkeleton";
-import {
-  Organization,
-  useOrganization,
-} from "@/app/context/OrganizationContext";
+import { useOrganization } from "@/app/context/OrganizationContext";
 import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
 import axiosInstance from "@/app/lib/axiosInstance";
+import { getApiErrorMessage } from "@/app/lib/apiError";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
 import type { LeadCategory, OrganizationUserRole, User } from "@prisma/client";
@@ -165,32 +163,20 @@ const formatLeadsData = (apiData: LeadCategoryWithUsers[]) => {
 };
 
 const formatOrgUserDataLeadsAgent = (apiData: OrgUserWithRole[]) => {
-  console.log("apiData:", apiData);
-  console.log("filterName:", apiData[0]);
-
-  const formated = apiData.map((lead) => ({
+  return apiData.map((lead) => ({
     id: lead.user.id,
     name: lead.user.name,
   }));
-  console.log("formated:", formated);
-
-  return formated;
 };
 
 const filterLeadsData = (apiData: OrgUserWithRole[]): FilteredLeadUsers => {
-  const minerList = apiData.slice().filter((lead) => lead.role === "MINER");
-  const agentList = apiData.slice().filter((lead) => lead.role === "AGENT");
-  console.log("minerList: ", minerList);
-  console.log("agentList: ", agentList);
-
-  const formatedAgentList = formatOrgUserDataLeadsAgent(agentList);
-  const formatedMinerList = formatOrgUserDataLeadsAgent(minerList);
-  console.log("formatedAgentList: ", formatedAgentList);
-  console.log("formatedMinerList: ", formatedMinerList);
-
   return {
-    minerList: formatedMinerList ? formatedMinerList : [],
-    agentList: formatedAgentList ? formatedAgentList : [],
+    agentList: formatOrgUserDataLeadsAgent(
+      apiData.filter((member) => member.role === "AGENT" || member.role === "ADMIN"),
+    ),
+    minerList: formatOrgUserDataLeadsAgent(
+      apiData.filter((member) => member.role === "MINER" || member.role === "ADMIN"),
+    ),
   };
 };
 
@@ -242,7 +228,12 @@ export default function LeadsPage() {
   const { data: session, status } = useSession();
 
   const { selectedOrg, organizations, isLoading } = useOrganization();
-  const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
+  const selectedOrgData = organizations.find(
+    (org) => org.organization.id === selectedOrg,
+  );
+  const [actionError, setActionError] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
   const [form, setForm] = useState<LeadCategoryForm>({
     name: "",
@@ -267,7 +258,7 @@ export default function LeadsPage() {
     // Implement the edit functionality here (e.g., navigate to edit page)
     console.log("Editing lead with ID:", ownerId, leadName);
     if (leadName && ownerId) {
-      router.push(`/leads/${ownerId}?leadName=${leadName}`);
+      router.push(`/leads/${ownerId}?leadName=${encodeURIComponent(leadName)}`);
     }
   };
 
@@ -290,36 +281,32 @@ export default function LeadsPage() {
     canAssignUser: boolean,
     onClose: () => void,
   ) => {
-    console.log("handleAddCategorizedLead: ", selectedOrg);
+    setActionError("");
+    if (!form.name.trim() || !form.owner || (canAssignUser && !form.assignedTo)) {
+      setActionError(
+        canAssignUser
+          ? "Enter a list name, owner, and assigned user."
+          : "Enter a list name and owner.",
+      );
+      return;
+    }
 
-    console.log("handleAddCategorizedLead: ", form);
-
-    const response = await axiosInstance.post(
-      "/leads/manage-lead-category/add-categorized-lead",
-      {
-        selectedOrg: selectedOrg,
+    setIsAdding(true);
+    try {
+      await axiosInstance.post("/leads/manage-lead-category/add-categorized-lead", {
+        selectedOrg,
         categoryName: form.name,
         ownerId: form.owner,
-
-        //if user is not admin automatically set the assigned to the current miner who create the organized lead
-        email: canAssignUser ? form.assignedTo : session?.user?.email,
-      },
-    );
-
-    if (response.data.error) throw new Error(`error: ${response.data.error}`);
-
-    console.log(
-      "handleAddCategorizedLead aded result: ",
-      handleAddCategorizedLead,
-    );
-
-    if (onClose) console.log("closemodal: ", onClose);
-    onClose();
-    setForm({
-      name: "",
-      owner: "",
-      assignedTo: "",
-    });
+        assignedUserId: canAssignUser ? form.assignedTo : undefined,
+      });
+      await refreshCategorizedLeads();
+      onClose();
+      setForm({ name: "", owner: "", assignedTo: "" });
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to add the lead list."));
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleChange = (
@@ -330,39 +317,12 @@ export default function LeadsPage() {
     inputChange({ e, setForm, setError, form, componentName });
   };
 
-  useEffect(() => {
-    console.log("form: ", form.name);
-  }, [form.name]);
-
-  //should fetch datas of selected Organization
-  useEffect(() => {
-    if (selectedOrg && organizations) {
-      console.log("runs");
-      console.log("selectedOrg: ", selectedOrg);
-      console.log("organizations: ", organizations);
-
-      //return a copy of selected organization
-      const orgData = organizations
-        .slice()
-        .filter((org) => org.organization.id === selectedOrg);
-      if (orgData) {
-        console.log("orgData: ", orgData[0]);
-
-        setSelectedOrgData(orgData[0]);
-      }
-    }
-  }, [organizations, selectedOrg]);
-
-  useEffect(() => {
-    if (selectedOrgData) console.log("leadSelectedOrgData: ", selectedOrgData);
-  }, [selectedOrgData]);
-
   const leadsKey =
     session?.user?.email && selectedOrg
       ? `fetch-leads-data::${session.user.email}::${selectedOrg}`
       : null;
 
-  const { data: categorizedLeads, isLoading: isLoadingcategorizedLeads } =
+  const { data: categorizedLeads, error: leadsError, isLoading: isLoadingcategorizedLeads, mutate: refreshCategorizedLeads } =
     useSWR(leadsKey ? leadsKey : null, handleFetchCategorizedLeadsData, {
       revalidateOnMount: true,
       dedupingInterval: 60000,
@@ -374,7 +334,7 @@ export default function LeadsPage() {
       ? `fetch-org-user::${selectedOrg}`
       : null;
 
-  const { data: manageOrgUserData } = useSWR(
+  const { data: manageOrgUserData, error: orgUsersError } = useSWR(
     manageOrgUserKey ? manageOrgUserKey : null,
     handleFetchOrgUserData,
     {
@@ -392,6 +352,19 @@ export default function LeadsPage() {
     sendRequestToDeleteCategorizedLead,
   );
 
+  const handleDeleteCategorizedLead = async (id: string) => {
+    setActionError("");
+    setDeletingId(id);
+    try {
+      await triggerDeleteCategorizedLead({ id, selectedOrg: selectedOrg as string });
+      await refreshCategorizedLeads();
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, "Unable to delete the lead list."));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
     <>
       {status === "loading" || isLoading ? (
@@ -405,15 +378,24 @@ export default function LeadsPage() {
             {/* Leads title and Add new lead button */}
             <div className="flex justify-between mb-4">
               <h2 className="text-3xl font-bold">Leads</h2>
-              <Button color="primary" onPress={onAddOpen}>
+              <Button color="primary" onPress={() => { setActionError(""); onAddOpen(); }}>
                 Add Lead List
               </Button>
             </div>
+            {actionError && !isAddOpen && (
+              <p role="alert" className="mb-4 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {actionError}
+              </p>
+            )}
           </div>
 
           {/* Table to display leads */}
           {isLoadingcategorizedLeads ? (
             <TableSkeleton className="" columns={4} />
+          ) : leadsError ? (
+            <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              Unable to load lead lists. Please try again.
+            </p>
           ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
             <Table aria-label="oraganization categorized leads">
               <TableHeader columns={columns}>
@@ -445,13 +427,9 @@ export default function LeadsPage() {
                                 size="sm"
                                 variant="light"
                                 color="danger"
+                                isLoading={deletingId === item.id}
                                 // onPress={() => handleDeleteLead(item.id)}
-                                onPress={() =>
-                                  triggerDeleteCategorizedLead({
-                                    id: item.id,
-                                    selectedOrg,
-                                  })
-                                }
+                                onPress={() => handleDeleteCategorizedLead(item.id)}
                               >
                                 Delete
                               </Button>
@@ -482,6 +460,16 @@ export default function LeadsPage() {
             <>
               <ModalHeader>Add Lead List</ModalHeader>
               <ModalBody>
+                {orgUsersError && (
+                  <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    Unable to load organization users. Please try again.
+                  </p>
+                )}
+                {actionError && (
+                  <p role="alert" className="rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                    {actionError}
+                  </p>
+                )}
                 <form
                   className="space-y-6"
                   onSubmit={(e) => {
@@ -496,7 +484,7 @@ export default function LeadsPage() {
                 >
                   <div>
                     <Input
-                      // isRequired
+                      isRequired
                       label="List name"
                       type="text"
                       id="name"
@@ -520,7 +508,7 @@ export default function LeadsPage() {
                   )}
                   <div>
                     <Select
-                      // isRequired
+                      isRequired
                       className="max-w-xs"
                       label="Owner"
                       name="owner"
@@ -535,19 +523,16 @@ export default function LeadsPage() {
 
                   <div>
                     <Select
-                      isDisabled={
-                        categorizedLeads?.userRole !== "ADMIN" &&
-                        categorizedLeads?.userRole === "MINER"
-                      }
+                      isRequired={selectedOrgData?.role === "ADMIN"}
+                      isDisabled={selectedOrgData?.role !== "ADMIN"}
                       className="max-w-xs"
                       label="Assigned user"
                       name="assignedTo"
                       selectedKeys={[form.assignedTo]}
                       placeholder={
-                        categorizedLeads?.userRole !== "ADMIN" &&
-                        categorizedLeads?.userRole === "MINER"
-                          ? `${session?.user?.name} (Me)`
-                          : ""
+                        selectedOrgData?.role === "ADMIN"
+                          ? "Select a member"
+                          : `${session?.user?.name ?? "You"} (Me)`
                       }
                       onChange={handleChange}
                     >
@@ -560,8 +545,8 @@ export default function LeadsPage() {
                     <Button variant="light" onPress={onClose}>
                       Cancel
                     </Button>
-                    <Button color="primary" type="submit">
-                      Confirm
+                    <Button color="primary" type="submit" isLoading={isAdding}>
+                      {isAdding ? "Adding..." : "Confirm"}
                     </Button>
                   </ModalFooter>
                 </form>
