@@ -29,6 +29,7 @@ const sensitiveAuthPaths = [
   "/api/auth/forgot-password",
   "/api/auth/reset-password",
   "/api/auth/change-password",
+  "/api/contact",
 ];
 
 const securityHeaders: Record<string, string> = {

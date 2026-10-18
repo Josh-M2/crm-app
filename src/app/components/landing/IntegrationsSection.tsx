@@ -1,102 +1,22 @@
-"use client";
-
-import { Button } from "@heroui/react";
-import { motion, type Variants } from "framer-motion";
-import {
-  FaSlack,
-  FaMap,
-  FaSalesforce,
-  FaGoogle,
-  FaMailchimp,
-  FaStripe,
-  FaHubspot,
-  FaIntercom,
-} from "react-icons/fa";
-
-type Integration = {
-  name: string;
-  Icon: React.ElementType;
-};
-
-const integrations: Integration[] = [
-  { name: "Slack", Icon: FaSlack },
-  { name: "Zapier", Icon: FaMap },
-  { name: "Salesforce", Icon: FaSalesforce },
-  { name: "Google Sheets", Icon: FaGoogle },
-  { name: "Mailchimp", Icon: FaMailchimp },
-  { name: "Stripe", Icon: FaStripe },
-  { name: "HubSpot", Icon: FaHubspot },
-  { name: "Intercom", Icon: FaIntercom },
-];
-
-const sectionVariants: Variants = {
-  hidden: { opacity: 0, y: 34 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: "easeOut" },
-  },
-};
+import Link from "next/link";
+import { FiArrowRight, FiLayers, FiMessageSquare } from "react-icons/fi";
 
 export default function IntegrationSection() {
   return (
-    <motion.section
-      className="bg-white py-16"
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ amount: 0.25 }}
-      variants={sectionVariants}
-    >
-      <div className=" mx-auto text-center">
-        <h2 className="text-4xl font-bold mb-6">Connect your sales stack</h2>
-        <p className="text-gray-500 mb-12">
-          Bring LeadNest together with the tools your team already uses for
-          messaging, reporting, campaigns, payments, and customer support.
-        </p>
-
-        {/* Marquee effect */}
-        <div className="overflow-hidden relative w-full pb-16">
-          <motion.div
-            className="flex gap-12"
-            animate={{ x: ["0%", "-100%"] }}
-            transition={{
-              repeat: Infinity,
-              repeatType: "loop",
-              duration: 20,
-              ease: "linear",
-            }}
-          >
-            {integrations.concat(integrations).map(
-              (
-                integration,
-                index // duplicate for infinite scroll
-              ) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center min-w-[150px]"
-                >
-                  <integration.Icon className="text-4xl text-gray-500 mb-2" />
-                  <span className="text-gray-500 font-medium">
-                    {integration.name}
-                  </span>
-                </div>
-              )
-            )}
-          </motion.div>
-        </div>
+    <section className="bg-white px-5 py-24 sm:px-8 lg:py-28" aria-labelledby="integrations-title">
+      <div className="mx-auto grid max-w-7xl items-center gap-10 rounded-[2rem] bg-slate-900 p-8 text-white sm:p-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:p-16">
         <div>
-          <Button
-            as="a"
-            href="/contact"
-            color="primary"
-            size="lg"
-            className="mx-auto"
-            variant="solid"
-          >
-            Ask about integrations
-          </Button>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-sky-300">Integrations</p>
+          <h2 id="integrations-title" className="mt-4 text-4xl font-bold tracking-tight sm:text-5xl">Your tools shape what comes next.</h2>
+          <p className="mt-6 max-w-xl text-base leading-8 text-slate-300">Direct integrations are still being developed. Tell us which tools your team relies on so we can prioritize the connections that matter.</p>
+          <Link href="/contact" className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-slate-900 transition-colors hover:bg-sky-100">Request an integration <FiArrowRight aria-hidden="true" /></Link>
+        </div>
+        <div className="grid gap-4" aria-hidden="true">
+          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/10 p-5"><span className="rounded-xl bg-sky-400/20 p-3 text-sky-300"><FiMessageSquare size={22} /></span><span className="font-semibold">Conversations</span><span className="ml-auto h-px w-12 bg-sky-300/50" /></div>
+          <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/10 p-5"><span className="rounded-xl bg-indigo-400/20 p-3 text-indigo-300"><FiLayers size={22} /></span><span className="font-semibold">Customer data</span><span className="ml-auto h-px w-12 bg-indigo-300/50" /></div>
+          <div className="flex items-center gap-4 rounded-2xl border border-indigo-300/30 bg-indigo-500/20 p-5"><span className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500 font-black">L</span><span className="font-semibold">LeadNest workspace</span></div>
         </div>
       </div>
-    </motion.section>
+    </section>
   );
 }

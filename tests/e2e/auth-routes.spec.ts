@@ -12,6 +12,6 @@ test("renders login page", async ({ page }) => {
   await page.goto("/login");
 
   await expect(
-    page.getByRole("heading", { name: "Login to LeadNest" })
+    page.getByRole("heading", { name: "Log in to LeadNest" })
   ).toBeVisible();
 });

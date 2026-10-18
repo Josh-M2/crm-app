@@ -21,6 +21,7 @@ const loginErrorMap: Record<string, { fieldName?: string; message: string }> = {
 type AuthRequestError = {
   status?: number;
   response?: {
+    status?: number;
     data?: {
       error?: string;
     };
@@ -40,6 +41,7 @@ export default function LoginPage() {
     passwordError: "",
   });
   const [loading, setIsLoading] = useState<boolean>(false);
+  const [formError, setFormError] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotLoading, setForgotLoading] = useState(false);
@@ -53,43 +55,32 @@ export default function LoginPage() {
   const handleSubmitLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("submitted: ", form.email);
+    setFormError("");
     const emailError = validateEmail(form.email);
     const passwordError = validatePassword(form.password, componentName);
 
     if (emailError === null && passwordError === null) {
-      console.log("calkling signup api ");
       try {
-        // const response = await axiosInstance.post("/auth/login", form);
-
-        // console.log("succesfully signeup", response.data);
-        // console.log("succesfully signeup", response.data.user.email);
-        // console.log("succesfully signeup", response.data.user.password);
         const res = await signIn("credentials", {
           email: form.email,
           password: form.password,
           redirect: false,
         });
         if (res?.ok) {
-          console.log("res: ", res);
           router.push("/dashboard");
         } else if (res?.error) {
-          console.log("error: ", res?.error);
           const loginErrorMessage = loginErrorMap[res.error] ?? {
             message: "Login failed. Please try again.",
           };
-
-          console.log("loginErrorMessage: ", loginErrorMessage);
-
-          setError((prev) => ({
-            ...prev,
-            [loginErrorMessage.fieldName as string]: loginErrorMessage.message,
-          }));
+          if (loginErrorMessage.fieldName) {
+            setError((prev) => ({ ...prev, [loginErrorMessage.fieldName as string]: loginErrorMessage.message }));
+          } else {
+            setFormError(loginErrorMessage.message);
+          }
         }
       } catch (error: unknown) {
         const requestError = error as AuthRequestError;
-        if (requestError.status === 409) {
-          console.log("error message", requestError.response?.data?.error);
+        if (requestError.status === 409 || requestError.response?.status === 409) {
           setError((prev) => ({
             ...prev,
             emailError: requestError.response?.data?.error ?? "Login failed.",
@@ -98,7 +89,7 @@ export default function LoginPage() {
           return;
         }
 
-        console.error("error Signup", error);
+        setFormError("Unable to log in right now. Please try again.");
       }
     } else {
       setError({
@@ -144,11 +135,12 @@ export default function LoginPage() {
   return (
     <>
       <NavBar />
-      <section className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-md">
-          <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-            Login to LeadNest
-          </h2>
+      <section className="flex min-h-screen items-center justify-center bg-[#f7f9ff] px-4 pb-16 pt-32 sm:px-6">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-[0_25px_70px_-35px_rgba(25,40,75,0.3)] sm:p-9">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Welcome back</p>
+          <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-slate-900">Log in to LeadNest</h1>
+          <p className="mb-8 mt-2 text-center text-sm text-slate-500">Pick up where your team left off.</p>
+          {formError && <p role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p>}
           <form className="space-y-6" onSubmit={handleSubmitLogin}>
             <div>
               <label
@@ -161,6 +153,8 @@ export default function LoginPage() {
                 type="email"
                 id="email"
                 name="email"
+                autoComplete="email"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="you@example.com"
                 value={form.email}
@@ -190,6 +184,8 @@ export default function LoginPage() {
                 type="password"
                 id="password"
                 name="password"
+                autoComplete="current-password"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="••••••••"
                 value={form.password}
@@ -212,6 +208,8 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="text-sm text-primary hover:underline"
+                aria-expanded={forgotOpen}
+                aria-controls="password-reset-panel"
                 onClick={() => {
                   setForgotOpen((prev) => !prev);
                   setForgotEmail(form.email);
@@ -222,15 +220,7 @@ export default function LoginPage() {
                 Forgot password?
               </button>
             </div>
-            <div
-              className={`grid transition-all duration-200 ease-out ${
-                forgotOpen
-                  ? "grid-rows-[1fr] opacity-100"
-                  : "grid-rows-[0fr] opacity-0"
-              }`}
-            >
-              <div className="overflow-hidden">
-                <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+            {forgotOpen && <div id="password-reset-panel" className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                   <label
                     className="block text-gray-700 text-sm mb-2"
                     htmlFor="forgot-email"
@@ -240,6 +230,7 @@ export default function LoginPage() {
                   <input
                     id="forgot-email"
                     type="email"
+                    autoComplete="email"
                     className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                     value={forgotEmail}
                     onChange={(event) => setForgotEmail(event.target.value)}
@@ -262,16 +253,14 @@ export default function LoginPage() {
                   >
                     Send reset password link
                   </Button>
-                </div>
-              </div>
-            </div>
+            </div>}
             <Button
               type="submit"
               color="primary"
-              className="w-full"
+              className="min-h-11 w-full rounded-xl bg-indigo-600 font-semibold text-white"
               disabled={loading}
             >
-              Login
+              {loading ? "Logging in..." : "Log in"}
             </Button>
           </form>
 

@@ -21,6 +21,7 @@ import Image from "next/image";
 type AuthRequestError = {
   status?: number;
   response?: {
+    status?: number;
     data?: {
       error?: string;
     };
@@ -44,6 +45,7 @@ export default function SignupPage() {
     repasswordError: "",
   });
   const [loading, setIsLoading] = useState<boolean>(false);
+  const [formError, setFormError] = useState("");
   const router = useRouter();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -52,7 +54,7 @@ export default function SignupPage() {
   const handleSubmitSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    console.log("submitted: ", form);
+    setFormError("");
     const nameError = validateName(form.name as string);
     const emailError = validateEmail(form.email);
     const passwordError = validatePassword(form.password, componentName);
@@ -60,7 +62,6 @@ export default function SignupPage() {
       form.password,
       form.repassword as string
     );
-    console.log(nameError);
 
     if (
       nameError === null &&
@@ -68,30 +69,26 @@ export default function SignupPage() {
       passwordError === null &&
       repasswordError == null
     ) {
-      console.log("calkling signup api ");
       try {
         const response = await axiosInstance.post("/auth/signup", form);
 
         if (response.status === 201) {
-          console.log("succesfully signeup", response.data);
-          console.log("succesfully signeup", response.data.user.email);
-          console.log("succesfully signeup", response.data.user.password);
           const res = await signIn("credentials", {
             email: form.email,
             password: form.password,
             redirect: false,
           });
           if (res?.ok) {
-            console.log("res: ", res);
             router.push("/dashboard");
+          } else {
+            setFormError("Account created, but we could not log you in. Please use the login page.");
           }
         } else {
-          console.error("something went wrong in signup api request ");
+          setFormError("Unable to create your account. Please try again.");
         }
       } catch (error: unknown) {
         const requestError = error as AuthRequestError;
-        if (requestError.status === 409) {
-          console.log("error message", requestError.response?.data?.error);
+        if (requestError.status === 409 || requestError.response?.status === 409) {
           setError((prev) => ({
             ...prev,
             emailError: requestError.response?.data?.error ?? "Signup failed.",
@@ -100,7 +97,7 @@ export default function SignupPage() {
           return;
         }
 
-        console.error("error Signup", error);
+        setFormError("Unable to create your account. Please try again.");
       }
     } else {
       setError({
@@ -122,11 +119,12 @@ export default function SignupPage() {
   return (
     <>
       <NavBar />
-      <section className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="bg-white rounded-lg shadow-md p-8 w-full max-w-md">
-          <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
-            Create Your Account
-          </h2>
+      <section className="flex min-h-screen items-center justify-center bg-[#f7f9ff] px-4 pb-16 pt-32 sm:px-6">
+        <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-7 shadow-[0_25px_70px_-35px_rgba(25,40,75,0.3)] sm:p-9">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Create your workspace</p>
+          <h1 className="mt-2 text-center text-3xl font-bold tracking-tight text-slate-900">Get started with LeadNest</h1>
+          <p className="mb-8 mt-2 text-center text-sm text-slate-500">A clearer place for your leads and deals.</p>
+          {formError && <p role="alert" className="mb-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{formError}</p>}
           <form className="space-y-6" onSubmit={handleSubmitSignup}>
             <div>
               <label
@@ -139,6 +137,8 @@ export default function SignupPage() {
                 type="text"
                 id="name"
                 name="name"
+                autoComplete="name"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="John Doe"
                 value={form.name}
@@ -169,6 +169,8 @@ export default function SignupPage() {
                 type="email"
                 id="email"
                 name="email"
+                autoComplete="email"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="you@example.com"
                 value={form.email}
@@ -199,6 +201,8 @@ export default function SignupPage() {
                 type="password"
                 id="password"
                 name="password"
+                autoComplete="new-password"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="••••••••"
                 value={form.password}
@@ -229,6 +233,8 @@ export default function SignupPage() {
                 type="password"
                 id="repassword"
                 name="repassword"
+                autoComplete="new-password"
+                required
                 className="w-full border border-gray-300 rounded-md p-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 placeholder="••••••••"
                 value={form.repassword}
@@ -251,11 +257,11 @@ export default function SignupPage() {
             <Button
               type="submit"
               color="primary"
-              className="w-full"
+              className="min-h-11 w-full rounded-xl bg-indigo-600 font-semibold text-white"
               disabled={loading}
               aria-busy={loading}
             >
-              {loading ? "loading" : "Sign Up"}
+              {loading ? "Creating account..." : "Create account"}
             </Button>
           </form>
 

@@ -2,6 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  body {
+    background: #f6f8fc;
+    color: #17233c;
+  }
+
+  ::selection {
+    background: #c7d8ff;
+    color: #102044;
+  }
+
+  :focus-visible {
+    outline: 3px solid #5c78e9;
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .workspace-panel {
+    @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_10px_35px_-25px_rgba(25,40,75,0.35)];
+  }
+
+  .workspace-kicker {
+    @apply text-xs font-bold uppercase tracking-[0.18em] text-indigo-600;
+  }
+
+  .workspace-heading {
+    @apply text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl;
+  }
+
+  .workspace-subtitle {
+    @apply max-w-2xl text-sm leading-6 text-slate-500 sm:text-base;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 @layer utilities {
   @keyframes liquid-blob-one {
     0%,
@@ -89,6 +137,6 @@
   .animate-navbar-drop-in {
     opacity: 0;
     transform: translate(-50%, -140%);
-    animation: navbar-drop-in 800ms cubic-bezier(0.22, 1, 0.36, 1) 2s forwards;
+    animation: navbar-drop-in 550ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
   }
 }

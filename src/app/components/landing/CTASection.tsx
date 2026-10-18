@@ -15,18 +15,19 @@ const sectionVariants: Variants = {
 export default function CTASection() {
   return (
     <motion.section
-      className="bg-gray-100 py-28 text-center"
+      className="bg-[#f7f9ff] px-5 py-24 text-center sm:px-8 lg:py-28"
       initial="hidden"
       whileInView="visible"
       viewport={{ amount: 0.35 }}
       variants={sectionVariants}
     >
-      <h2 className="text-3xl font-bold mb-4">Ready to organize your pipeline?</h2>
-      <p className="text-lg mb-6">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600">Your next step</p>
+      <h2 className="mx-auto mt-3 max-w-3xl text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">Ready to organize your pipeline?</h2>
+      <p className="mx-auto mt-5 mb-8 max-w-2xl text-lg leading-8 text-slate-600">
         Create your workspace, invite your team, and start turning lead activity
         into clear next actions.
       </p>
-      <Button as={Link} href="/signup" color="primary" size="lg">
+      <Button as={Link} href="/signup" color="primary" size="lg" className="rounded-xl bg-indigo-600 px-7 font-semibold text-white">
         Start your workspace
       </Button>
     </motion.section>

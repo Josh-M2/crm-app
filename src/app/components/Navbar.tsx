@@ -103,7 +103,7 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
     <Navbar
       isMenuOpen={isMenuOpen}
       onMenuOpenChange={setIsMenuOpen}
-      className={`fixed left-1/2 top-4 z-[9999] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-full border border-white/30 bg-white/70 shadow-xl backdrop-blur-xl ${
+      className={`fixed left-1/2 top-4 z-[9999] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-2xl border border-slate-200/80 bg-white/95 shadow-[0_15px_50px_-25px_rgba(29,45,87,0.45)] backdrop-blur-xl ${
         animateEntrance ? "animate-navbar-drop-in" : ""
       }`}
       classNames={{
@@ -114,44 +114,44 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
       <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
-          className="sm:hidden"
+          className="lg:hidden"
         />
         <NavbarBrand>
-          <Link href="/" color="foreground" className="font-bold">
-            LeadNest
+          <Link href="/" color="foreground" className="flex items-center gap-2.5 font-bold tracking-tight text-slate-900">
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-sm font-black text-white">L</span> LeadNest
           </Link>
         </NavbarBrand>
       </NavbarContent>
 
-      <NavbarContent className="hidden sm:flex gap-4" justify="center">
+      <NavbarContent className="hidden lg:flex gap-1" justify="center">
         {menuItems.map((section, index) => (
           <NavbarItem key={index}>
             <Button
               variant="light"
               onPress={() => handleNavClick(section)}
-              className={`transition ${
-                activeSection === section ? "bg-gray-200" : ""
+              className={`min-w-0 px-3 text-sm font-medium text-slate-600 transition-colors hover:text-indigo-700 ${
+                activeSection === section ? "bg-indigo-50 text-indigo-700" : ""
               }`}
             >
               {section}
             </Button>
           </NavbarItem>
         ))}
-        <NavbarItem className="hidden lg:flex">
+        <NavbarItem>
           <Button as={Link} variant="light" href="/contact">
             Contact
           </Button>
         </NavbarItem>
       </NavbarContent>
       <NavbarContent justify="end">
-        <NavbarItem className="hidden lg:flex">
+        <NavbarItem className="hidden md:flex">
           <Button as={Link} color="primary" href="/login" variant="light">
-            Login
+            Log in
           </Button>
         </NavbarItem>
         <NavbarItem>
-          <Button as={Link} color="primary" href="/signup" variant="solid">
-            Sign Up
+          <Button as={Link} color="primary" href="/signup" variant="solid" className="rounded-xl bg-indigo-600 px-5 font-semibold text-white">
+            Get started
           </Button>
         </NavbarItem>
       </NavbarContent>
