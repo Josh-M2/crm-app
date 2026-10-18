@@ -49,7 +49,9 @@ cp env.sample .env
 `DATABASE_URL` and `NEXTAUTH_SECRET` are required for sign-in and CRM data. Set
 `NEXTAUTH_URL` and `NEXT_PUBLIC_APP_URL` to the URL where the app runs (for
 example, `http://localhost:3000` in development). SMTP variables are optional
-and are needed only to send password-reset emails. Keep `.env` out of Git.
+and enable password-reset and contact email. `CONTACT_EMAIL` optionally chooses
+the inbox for contact messages; without it, contact mail goes to `SMTP_USER`.
+The contact form reports an error when SMTP is unconfigured. Keep `.env` out of Git.
 
 Generate Prisma Client if needed:
 
@@ -166,18 +168,24 @@ Implemented:
 - individual leads
 - deals
 - collapsible desktop navigation and mobile navigation drawer
+- saved desktop sidebar preference, clear empty states, and workspace quick actions
 - dashboard
 - analytics
 - settings/manage users
 - join request accept/decline
 - activity logging
+- contact form with server-side validation and SMTP delivery
 - seed data
 - unit and e2e test foundations
 
 Intentionally skipped for now:
 
 - Stripe billing
+- direct third-party integrations
 - live collaboration / mouse presence
+
+The public pricing and integrations sections describe their current availability.
+They do not advertise plans or connections that the app has not implemented.
 
 ## Useful Files
 

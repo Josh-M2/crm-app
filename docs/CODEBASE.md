@@ -56,20 +56,22 @@ NEXTAUTH_URL
 NEXT_PUBLIC_APP_URL
 ```
 
-Password-reset email delivery also uses these optional values:
+Password-reset and contact email delivery also use these optional values:
 
 ```txt
 SMTP_HOST
 SMTP_PORT
 SMTP_USER
 SMTP_PASSWORD
+CONTACT_EMAIL
 ```
 
 `DATABASE_URL` is used by Prisma. `NEXTAUTH_SECRET` is used by NextAuth JWT token verification.
 `NEXTAUTH_URL` is the app's auth callback origin, and `NEXT_PUBLIC_APP_URL` is
 used for metadata and password-reset links. SMTP values are used by the
-password reset email flow. If they are missing, reset email delivery is treated
-as unconfigured. `.env` is ignored by Git.
+password reset and contact email flows. `CONTACT_EMAIL` is the optional contact
+inbox and defaults to `SMTP_USER`. If SMTP values are missing, these email flows
+report that delivery is unavailable. `.env` is ignored by Git.
 
 ## Top-Level Structure
 
@@ -115,6 +117,10 @@ These routes are public marketing/landing pages. They use the shared landing com
 ```txt
 src/app/components/landing/
 ```
+
+The pricing and integrations sections show current availability rather than
+unimplemented paid plans or vendor connections. `/contact` sends a validated
+message through `POST /api/contact` and shows success or failure in the form.
 
 ### Auth Routes
 
@@ -186,7 +192,7 @@ Behavior:
 
 - all `/api/:path*` requests pass through the security middleware
 - API requests are rate limited by client IP and path
-- sensitive auth endpoints are limited more strictly than general API endpoints
+- sensitive auth and contact endpoints are limited more strictly than general API endpoints
 - oversized API request bodies are rejected before route handlers run
 - baseline security headers are applied to middleware responses
 - unauthenticated users visiting protected app routes are redirected to `/login`
@@ -198,7 +204,7 @@ Current API rate limits:
 
 ```txt
 General API routes: 120 requests per minute per client IP and path
-Sensitive auth routes: 10 requests per minute per client IP and path
+Sensitive auth and contact routes: 10 requests per minute per client IP and path
 Maximum API request body size: 1 MB
 ```
 
@@ -211,6 +217,7 @@ Sensitive auth routes:
 /api/auth/forgot-password
 /api/auth/reset-password
 /api/auth/change-password
+/api/contact
 ```
 
 Security headers applied by middleware:
@@ -270,6 +277,17 @@ src/app/api/auth/reset-password/route.ts
 `forgot-password` accepts an email address, creates a short-lived reset token for matching users, and sends a reset email when SMTP is configured.
 
 `reset-password` validates reset tokens with `GET` and updates the user password with `POST`. Reset links expire after 30 minutes and are invalidated after a successful password update.
+
+### Contact API
+
+```txt
+src/app/api/contact/route.ts
+```
+
+`POST /api/contact` validates name, email, and message length, ignores honeypot
+submissions, escapes HTML content, and delivers mail to `CONTACT_EMAIL` or
+`SMTP_USER`. It returns a clear error if delivery is unavailable. The middleware
+limits requests to 10 per minute per client IP and path.
 
 ## Authorization Helpers
 
@@ -636,6 +654,8 @@ Manage users supports:
 - declining join requests
 
 Admin protections live in API routes, not only the UI.
+The settings page shows the organization invite code and links admins to user
+management. Organization deletion is not exposed because there is no deletion API.
 
 ## Shared Components
 
@@ -648,6 +668,8 @@ src/app/components/UserAvatar.tsx
 ```
 
 `SetUpOrg` lets a signed-in user create a new organization or request to join an existing organization by organization code.
+The desktop sidebar stores its collapsed preference in local storage. The
+dashboard, Leads, Deals, and Analytics pages provide actions when their data is empty.
 
 Landing components:
 
@@ -794,6 +816,7 @@ tests/unit/lib/deals/helpers.test.ts
 tests/unit/lib/leads/validation.test.ts
 tests/unit/lib/apiError.test.ts
 tests/unit/api/leads.test.ts
+tests/unit/api/contact.test.ts
 tests/unit/components/ProtectedLayout.test.tsx
 ```
 
@@ -816,6 +839,7 @@ Tests:
 ```txt
 tests/e2e/auth-routes.spec.ts
 tests/e2e/password-reset.spec.ts
+tests/e2e/mobile-navigation.spec.ts
 ```
 
 Run:
