@@ -87,13 +87,13 @@ export default function IntegrationSection() {
         <div>
           <Button
             as="a"
-            href="#"
+            href="/contact"
             color="primary"
             size="lg"
             className="mx-auto"
             variant="solid"
           >
-            View integrations
+            Ask about integrations
           </Button>
         </div>
       </div>

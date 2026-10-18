@@ -14,7 +14,7 @@ export default function Footer() {
         {menuItems.map((item, index) => (
           <a
             key={index}
-            href={`/?section=${item.toLowerCase().replace(/\s+/g, "-")}`}
+            href={`/?section=${item}`}
             className="text-gray-400 hover:text-white transition-colors"
           >
             {item}
@@ -38,22 +38,6 @@ export default function Footer() {
           className="text-gray-400 hover:text-white transition-colors"
         >
           Contact Us
-        </a>
-      </div>
-
-      {/* Terms Links */}
-      <div className="flex justify-center gap-4 text-sm">
-        <a
-          href="/terms"
-          className="text-gray-400 hover:text-white transition-colors"
-        >
-          Terms of Service
-        </a>
-        <a
-          href="/privacy"
-          className="text-gray-400 hover:text-white transition-colors"
-        >
-          Privacy Policy
         </a>
       </div>
     </footer>

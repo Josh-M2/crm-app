@@ -99,12 +99,9 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
   //     "Log Out",
   //   ];
 
-  const handleNavigate = () => {
-    router.push("/");
-  };
-
   return (
     <Navbar
+      isMenuOpen={isMenuOpen}
       onMenuOpenChange={setIsMenuOpen}
       className={`fixed left-1/2 top-4 z-[9999] w-[calc(100%-2rem)] max-w-7xl -translate-x-1/2 rounded-full border border-white/30 bg-white/70 shadow-xl backdrop-blur-xl ${
         animateEntrance ? "animate-navbar-drop-in" : ""
@@ -114,14 +111,15 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
         menu: "z-[9999]",
       }}
     >
-      <NavbarContent onClick={handleNavigate} className="cursor-pointer">
+      <NavbarContent>
         <NavbarMenuToggle
           aria-label={isMenuOpen ? "Close menu" : "Open menu"}
           className="sm:hidden"
         />
         <NavbarBrand>
-          {/* <AcmeLogo /> */}
-          <p className="font-bold text-inherit">LeadNest</p>
+          <Link href="/" color="foreground" className="font-bold">
+            LeadNest
+          </Link>
         </NavbarBrand>
       </NavbarContent>
 
@@ -170,7 +168,8 @@ export default function NavBar({ animateEntrance = false }: NavBarProps) {
                     ? "foreground" //danger
                     : "foreground"
               }
-              href="#"
+              href={`/?section=${item}`}
+              onPress={() => setIsMenuOpen(false)}
               size="lg"
             >
               {item}

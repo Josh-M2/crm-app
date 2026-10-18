@@ -77,13 +77,13 @@ export default function FeaturesSection() {
 
         <Button
           as="a"
-          href="#"
+          href="/signup"
           color="primary"
           size="lg"
           className="mx-auto"
           variant="solid"
         >
-          Explore features
+          Try LeadNest
         </Button>
       </div>
     </motion.section>

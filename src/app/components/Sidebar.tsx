@@ -16,7 +16,7 @@ import {
 } from "@heroui/react";
 import Link from "next/link";
 import UserAvatar from "@/app/components/UserAvatar";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { useOrganization } from "@/app/context/OrganizationContext";
@@ -43,6 +43,7 @@ type SidebarTypes = {
   toggleSideBar: () => void;
   isCollapsed?: boolean;
   isPinnedOpen?: boolean;
+  toggleLabel?: string;
 };
 
 const navItems = [
@@ -80,6 +81,7 @@ export default function Sidebar({
   toggleSideBar,
   isCollapsed = false,
   isPinnedOpen = true,
+  toggleLabel,
 }: SidebarTypes) {
   const {
     organizations,
@@ -89,11 +91,6 @@ export default function Sidebar({
     isLoading,
   } = useOrganization();
 
-  useEffect(() => {
-    if (organizations) {
-      console.log("organizationsSidebasr: ", organizations);
-    }
-  }, [organizations]);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState<boolean>(false);
   const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
@@ -113,7 +110,7 @@ export default function Sidebar({
 
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const { mutate } = useSWRConfig();
   const notificationKey = session?.user?.email ? "/notifications" : null;
   const { data: notifications = [] } = useSWR(
@@ -129,19 +126,6 @@ export default function Sidebar({
     () => notifications.slice(0, 8),
     [notifications]
   );
-
-  useEffect(() => {
-    if (session && status) {
-      console.log("session: ", session);
-      console.log("status: ", status);
-    }
-  }, [session, status]);
-
-  useEffect(() => {
-    if (pathname) {
-      console.log("pathname", pathname);
-    }
-  }, [pathname]);
 
   const handleLogout = async () => {
     //deletion of swr cache data
@@ -180,7 +164,6 @@ export default function Sidebar({
       return;
     }
 
-    console.log("changedorgID: ", orgId);
     setSelectedOrg(orgId);
   };
   const isActiveRoute = (href: string) =>
@@ -329,8 +312,9 @@ export default function Sidebar({
           <h1 className="text-2xl font-bold text-black">LeadNest</h1>
         )}
         <button
-          aria-label={isPinnedOpen ? "Collapse sidebar" : "Expand sidebar"}
-          title={isPinnedOpen ? "Collapse sidebar" : "Expand sidebar"}
+          aria-label={toggleLabel ?? (isPinnedOpen ? "Collapse sidebar" : "Expand sidebar")}
+          title={toggleLabel ?? (isPinnedOpen ? "Collapse sidebar" : "Expand sidebar")}
+          aria-expanded={isPinnedOpen}
           className="rounded p-2 text-black hover:bg-gray-300"
           onClick={toggleSideBar}
         >
@@ -345,6 +329,7 @@ export default function Sidebar({
       {!isCollapsed && (
         <div className="mb-4">
           <Select<OrganizationSelectItem>
+            id="sidebar-organization"
             disabled={isLoading}
             className="max-w-xs"
             items={organizationSelectItems}
@@ -380,6 +365,7 @@ export default function Sidebar({
                 key={item.href}
                 href={item.href}
                 title={item.label}
+                aria-label={isCollapsed ? item.label : undefined}
                 className={`flex items-center rounded py-3 text-gray-700 transition hover:bg-gray-300 hover:text-black ${
                   isCollapsed ? "justify-center px-2" : "gap-3 px-2"
                 } ${isActiveRoute(item.href) ? "bg-gray-300" : ""}`}
@@ -391,13 +377,17 @@ export default function Sidebar({
           })}
         </div>
 
-        <div className={`mt-auto flex items-center ${isCollapsed ? "justify-center" : "gap-2"}`}>
+        <div className={`mt-auto flex items-center ${isCollapsed ? "flex-col justify-center" : "gap-2"}`}>
           <Popover
             isOpen={isOpen}
             onOpenChange={(open) => setIsOpen(open)}
           >
             <PopoverTrigger>
-              <div className="min-w-0 flex-1 cursor-pointer rounded p-2 text-black hover:bg-gray-300">
+              <button
+                type="button"
+                aria-label="Account menu"
+                className={`cursor-pointer rounded p-2 text-black hover:bg-gray-300 ${isCollapsed ? "w-full" : "min-w-0 flex-1"}`}
+              >
                 {isCollapsed ? (
                   <FiUser className="mx-auto" size={20} />
                 ) : (
@@ -406,7 +396,7 @@ export default function Sidebar({
                     name={session?.user?.name as string}
                   />
                 )}
-              </div>
+              </button>
             </PopoverTrigger>
             <PopoverContent>
               <div className="flex min-w-44 flex-col gap-2 px-1 py-2">
@@ -427,8 +417,7 @@ export default function Sidebar({
             </PopoverContent>
           </Popover>
 
-          {!isCollapsed && (
-            <Popover
+          <Popover
               isOpen={isNotificationOpen}
               onOpenChange={(open) => setIsNotificationOpen(open)}
               placement="top-end"
@@ -481,8 +470,7 @@ export default function Sidebar({
                   )}
                 </div>
               </PopoverContent>
-            </Popover>
-          )}
+          </Popover>
         </div>
       </nav>
       <Modal

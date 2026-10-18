@@ -24,26 +24,18 @@ export const inputChange = <TForm extends object, TError extends object>({
   form,
   componentName,
 }: HandeleChangeParams<TForm, TError>) => {
-  console.log("functionining");
-  console.log("componentName", componentName);
-  console.log("value: ", e.target.value);
-  console.log("target: ", e.target.name);
-  console.log("form: ", form);
-
   const { name, value } = e.target;
 
   setForm((prev) => ({ ...prev, [name]: value } as TForm));
 
   switch (name) {
     case "name":
-      // console.log("functionining");
       setError((prev) => ({
         ...prev,
         nameError: validateName(value),
       } as TError));
       break;
     case "owner":
-      // console.log("functionining");
       setError((prev) => ({
         ...prev,
         ownerError: validateName(value),
@@ -51,7 +43,6 @@ export const inputChange = <TForm extends object, TError extends object>({
       break;
 
     case "company":
-      // console.log("functionining");
       setError((prev) => ({
         ...prev,
         companyError: validateName(value),

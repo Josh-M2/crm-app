@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import useSWR, { mutate } from "swr";
+import useSWR from "swr";
 import axiosInstance from "@/app/lib/axiosInstance"; // your axios instance
 import type {
   Organization as PrismaOrganization,
@@ -34,7 +34,6 @@ type FetchOrganizationsResponse = {
 };
 
 const fetchOrganizations = async (refData: string): Promise<Organization[]> => {
-  console.log("fetchOrganizations: ", refData);
   const [, email] = refData.split("::"); // splits into ["", "user@example.com"]
   const response = await axiosInstance.get<FetchOrganizationsResponse>(
     "/organization/fetch-org",
@@ -46,7 +45,6 @@ const fetchOrganizations = async (refData: string): Promise<Organization[]> => {
   const data = response.data;
 
   if (data) {
-    console.log("fetchedOrganizations: ", response.data.userWithOrganizations);
     return data.userWithOrganizations;
   }
 
@@ -59,13 +57,7 @@ export const OrganizationProvider = ({
   children: React.ReactNode;
 }) => {
   const { data: session } = useSession();
-  const [selectedOrg, setSelectedOrgState] = useState<string | null>(() => {
-    const stored =
-      typeof window !== "undefined"
-        ? localStorage.getItem("selectedOrg")
-        : null;
-    return stored || null;
-  });
+  const [selectedOrg, setSelectedOrgState] = useState<string | null>(null);
   const [organizations, setOrganizationsState] = useState<Organization[]>([]);
 
   const orgKey = session?.user?.email
@@ -83,11 +75,6 @@ export const OrganizationProvider = ({
 
   const setSelectedOrg = (id: string) => {
     setSelectedOrgState(id);
-    //fetch the dashboard data again //rerun the swr sht
-    const dashboardKey = `fetch-dashboard-data::${session?.user?.email}::${selectedOrg}`;
-
-    mutate(dashboardKey); // only fetch if nothing's in cache
-
     localStorage.setItem("selectedOrg", id);
   };
 
@@ -96,30 +83,17 @@ export const OrganizationProvider = ({
   };
 
   useEffect(() => {
-    if (!orgs || orgs.length === 0) return;
-
-    const isSame =
-      JSON.stringify(orgs.map((o) => o.organization.id)) ===
-      JSON.stringify(organizations.map((o) => o.organization.id));
-
-    if (isSame) return; // Skip unnecessary re-setting
+    if (!orgs) return;
 
     const storedOrg = localStorage.getItem("selectedOrg");
     const foundOrg = orgs.find((org) => org.organization.id === storedOrg);
-    const fallbackOrgId = orgs[0].organization.id;
+    const nextOrgId = foundOrg?.organization.id ?? orgs[0]?.organization.id ?? null;
 
     setOrganizationsState(orgs);
-    setSelectedOrgState(foundOrg ? foundOrg.organization.id : fallbackOrgId);
-
-    localStorage.setItem(
-      "selectedOrg",
-      foundOrg ? foundOrg.organization.id : fallbackOrgId
-    );
-  }, [orgs, organizations]);
-
-  useEffect(() => {
-    if (selectedOrg) console.log("SelectedCurrentOrgID: ", selectedOrg);
-  }, [selectedOrg]);
+    setSelectedOrgState(nextOrgId);
+    if (nextOrgId) localStorage.setItem("selectedOrg", nextOrgId);
+    else localStorage.removeItem("selectedOrg");
+  }, [orgs]);
 
   return (
     <OrganizationContext.Provider
