@@ -1,6 +1,6 @@
 import React, { type HTMLAttributes, type ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import ProtectedLayout from "@/app/(protected)/layout";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/dashboard" }));
@@ -41,16 +41,19 @@ const renderLayout = (children: ReactNode = "Page content") =>
   render(<ProtectedLayout>{children}</ProtectedLayout>);
 
 describe("ProtectedLayout navigation", () => {
+  beforeEach(() => localStorage.clear());
+
   it("stays collapsed after the pointer moves over the sidebar", () => {
     renderLayout();
     const sidebar = screen.getByText("Expanded").parentElement;
-    expect(sidebar).toHaveAttribute("data-width", "16rem");
+    expect(sidebar).toHaveAttribute("data-width", "17rem");
 
     fireEvent.click(screen.getByRole("button", { name: "Collapse sidebar" }));
-    expect(sidebar).toHaveAttribute("data-width", "5rem");
+    expect(sidebar).toHaveAttribute("data-width", "5.5rem");
     fireEvent.mouseEnter(sidebar as HTMLElement);
-    expect(sidebar).toHaveAttribute("data-width", "5rem");
+    expect(sidebar).toHaveAttribute("data-width", "5.5rem");
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeVisible();
+    expect(localStorage.getItem("leadnest-sidebar-collapsed")).toBe("true");
   });
 
   it("opens and closes navigation on small screens", () => {

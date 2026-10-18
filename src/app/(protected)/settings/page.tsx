@@ -1,168 +1,59 @@
 "use client";
 
+import Link from "next/link";
+import { Button, Snippet } from "@heroui/react";
+import { useSession } from "next-auth/react";
+import { FiArrowRight, FiSettings, FiUsers } from "react-icons/fi";
 import SetUpOrg from "@/app/components/SetUpOrg";
 import { SettingsSkeleton } from "@/app/components/ProtectedPageSkeleton";
-import {
-  Organization,
-  useOrganization,
-} from "@/app/context/OrganizationContext";
-import {
-  Button,
-  Divider,
-  Input,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Snippet,
-  useDisclosure,
-} from "@heroui/react";
-
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useOrganization } from "@/app/context/OrganizationContext";
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { status } = useSession();
   const { selectedOrg, organizations, isLoading } = useOrganization();
-  const [inputOrgNameToDelete, setInputOrgNameToDelete] = useState<string>("");
-  const router = useRouter();
+  const organization = organizations.find((item) => item.organization.id === selectedOrg);
 
-  //to make types
-  const [selectedOrgData, setSelectedOrgData] = useState<Organization>();
-
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
-
-  useEffect(() => {
-    if (selectedOrg && organizations) {
-      console.log("runs");
-      console.log("selectedOrgsettings: ", selectedOrg);
-      console.log("organizationssettings: ", organizations);
-
-      //return a copy of selected organization
-      const orgData = organizations
-        .slice()
-        .filter((org) => org.organization.id === selectedOrg);
-      if (orgData) {
-        console.log("orgData: ", orgData[0]);
-
-        setSelectedOrgData(orgData[0]);
-      }
-    }
-  }, [organizations, selectedOrg]);
-
-  const handleOpenDeleteOrgModal = () => {
-    onOpen();
-  };
-
-  //to make types
-  //mockinshit
-  const handleDeleteOrg = (data: Organization | undefined, onClose: () => void) => {
-    if (selectedOrgData?.role !== "ADMIN") return;
-    if (!data) return;
-
-    console.log("delete org: ", data);
-    if (data.organization.name === inputOrgNameToDelete) {
-      setTimeout(() => {
-        console.log("deleted: ", data.organization.name);
-        onClose();
-        //navigate
-      }, 1000);
-    } else {
-      console.error("organization name not matcehd");
-    }
-  };
-
-  function handleNavigate(): void {
-    router.push("/settings/manage-users");
-  }
+  if (status === "loading" || isLoading) return <SettingsSkeleton />;
+  if (!selectedOrg || !organization) return <SetUpOrg />;
 
   return (
-    <>
-      {!session || !session.user?.email || isLoading ? (
-            <SettingsSkeleton />
-          ) : selectedOrg && !isLoading && organizations ? (
-            <>
-              <div className="place-items-center mb-5">
-                <h2 className="text-3xl font-bold ">
-                  {selectedOrgData?.organization.name}
-                </h2>
-              </div>
+    <div className="space-y-7">
+      <header>
+        <p className="workspace-kicker mb-2">Workspace / Settings</p>
+        <h1 className="workspace-heading">Organization settings</h1>
+        <p className="workspace-subtitle mt-2">Manage access and keep your team connected to the right workspace.</p>
+      </header>
 
-              <div className="flex flex-col">
-                <div className="flex flex-col mb-5">
-                  <label htmlFor="org-code">Organization invite code</label>
-                  <Snippet size="lg" hideSymbol={true}>
-                    {selectedOrgData?.organization.code}
-                  </Snippet>
-                </div>
-                <Divider className="my-4" />
-                {/* <div className="flex flex-col mb-5">
-            <label htmlFor="org-code">Organization invite code</label>
-            <Snippet size="lg">code here</Snippet>
-          </div> */}
-                {selectedOrgData?.role === "ADMIN" && (
-                  <div className="flex flex-row justify-end gap-x-2">
-                    <div className="flex flex-col mb-5 items-end">
-                      <Button onPress={handleNavigate} color="default">
-                        Manage Organization Users
-                      </Button>
-                    </div>
-                    <div className="flex flex-col mb-5 items-end">
-                      <Button onPress={handleOpenDeleteOrgModal} color="danger">
-                        Delete this Organization
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </>
-          ) : (
-            <SetUpOrg />
-          )}
+      <section className="workspace-panel p-6 sm:p-8" aria-labelledby="organization-title">
+        <div className="flex items-start gap-4">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FiSettings size={22} aria-hidden="true" /></span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold uppercase tracking-[0.15em] text-slate-500">Current organization</p>
+            <h2 id="organization-title" className="mt-1 truncate text-2xl font-bold text-slate-900">{organization.organization.name}</h2>
+            <p className="mt-1 text-sm text-slate-500">Your role: <span className="font-semibold capitalize text-slate-700">{organization.role.toLowerCase()}</span></p>
+          </div>
+        </div>
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <h3 className="text-sm font-bold text-slate-900">Organization invite code</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-500">Share this code with teammates you want to invite.</p>
+          <div className="mt-4 max-w-full overflow-x-auto"><Snippet size="lg" hideSymbol>{organization.organization.code}</Snippet></div>
+        </div>
+      </section>
 
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader>
-                Delete {selectedOrgData?.organization.name}{" "}
-              </ModalHeader>
-              <ModalBody>
-                <p>
-                  To delete this organization type &quot;
-                  <strong>{selectedOrgData?.organization.name}</strong>&quot; below.
-                </p>
+      {organization.role === "ADMIN" && (
+        <section className="workspace-panel flex flex-wrap items-center justify-between gap-5 p-6 sm:p-8" aria-labelledby="team-title">
+          <div className="flex items-start gap-4">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700"><FiUsers size={22} aria-hidden="true" /></span>
+            <div>
+              <h2 id="team-title" className="text-lg font-bold text-slate-900">Team members</h2>
+              <p className="mt-1 text-sm text-slate-500">Review access, roles, and organization requests.</p>
+            </div>
+          </div>
+          <Button as={Link} href="/settings/manage-users" color="primary" className="rounded-xl font-semibold" endContent={<FiArrowRight aria-hidden="true" />}>Manage team</Button>
+        </section>
+      )}
 
-                <Input
-                  label="Organization name"
-                  type="text"
-                  name="organiztin-delete"
-                  value={inputOrgNameToDelete}
-                  onChange={(e) => setInputOrgNameToDelete(e.target.value)}
-                />
-                <p className="text-sm">
-                  This action cannot be revert. all datas in this organization
-                  will be deleted from the database (e.g leads, deals, users of
-                  the organization, analytics etc.)
-                </p>
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose}>
-                  Cancel
-                </Button>
-                <Button
-                  color="danger"
-                  onPress={() => handleDeleteOrg(selectedOrgData, onClose)}
-                >
-                  Confirm
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
-    </>
+      <p className="text-sm text-slate-500">Need help with your organization? <Link href="/contact" className="font-semibold text-indigo-700 hover:underline">Contact LeadNest</Link>.</p>
+    </div>
   );
 }

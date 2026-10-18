@@ -33,6 +33,7 @@ import axiosInstance from "@/app/lib/axiosInstance";
 import { getApiErrorMessage } from "@/app/lib/apiError";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
+import { FiArrowRight, FiUsers } from "react-icons/fi";
 import type { LeadCategory, OrganizationUserRole, User } from "@prisma/client";
 
 type UserPreview = Pick<User, "id" | "name" | "email">;
@@ -376,10 +377,14 @@ export default function LeadsPage() {
         <>
           <div className="">
             {/* Leads title and Add new lead button */}
-            <div className="flex justify-between mb-4">
-              <h2 className="text-3xl font-bold">Leads</h2>
-              <Button color="primary" onPress={() => { setActionError(""); onAddOpen(); }}>
-                Add Lead List
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="workspace-kicker mb-2">Pipeline / Leads</p>
+                <h1 className="workspace-heading">Lead lists</h1>
+                <p className="workspace-subtitle mt-2">Keep prospects organized by list, owner, and next action.</p>
+              </div>
+              <Button color="primary" className="min-h-11 rounded-xl px-5 font-semibold" onPress={() => { setActionError(""); onAddOpen(); }}>
+                Add lead list
               </Button>
             </div>
             {actionError && !isAddOpen && (
@@ -397,7 +402,8 @@ export default function LeadsPage() {
               Unable to load lead lists. Please try again.
             </p>
           ) : categorizedLeads?.formatedcategorizedLeadsData.length ? (
-            <Table aria-label="oraganization categorized leads">
+            <div className="overflow-x-auto rounded-2xl">
+            <Table aria-label="Lead lists" className="min-w-[620px]">
               <TableHeader columns={columns}>
                 {(column) => (
                   <TableColumn key={column.key} className="text-center">
@@ -444,9 +450,13 @@ export default function LeadsPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           ) : (
-            <div className=" rounded-lg border border-gray-200 bg-white p-6 text-gray-600">
-              No lead lists yet.
+            <div className="workspace-panel flex min-h-80 flex-col items-center justify-center px-6 py-12 text-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FiUsers size={26} aria-hidden="true" /></div>
+              <h2 className="mt-5 text-xl font-bold text-slate-900">Start with your first lead list</h2>
+              <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Create a list to group prospects, assign an owner, and keep follow-ups easy to find.</p>
+              <Button color="primary" endContent={<FiArrowRight aria-hidden="true" />} className="mt-6 rounded-xl px-5 font-semibold" onPress={() => { setActionError(""); onAddOpen(); }}>Create a lead list</Button>
             </div>
           )}
         </>

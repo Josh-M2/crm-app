@@ -31,6 +31,7 @@ import { inputChange } from "@/app/lib/inputChange";
 import useSWR from "swr";
 import useSWRMutation from "swr/mutation";
 import Image from "next/image";
+import { FiArrowRight, FiTarget } from "react-icons/fi";
 import {
   DealFormErrorTypes,
   DealFormTypes,
@@ -237,10 +238,14 @@ export default function DealsPage() {
       ) : selectedOrg ? (
         <>
           <div className="">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-3xl font-bold">Deals</h2>
-              <Button color="primary" onPress={() => handleOpenModal("add")}>
-                Add New Deal
+            <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="workspace-kicker mb-2">Pipeline / Deals</p>
+                <h1 className="workspace-heading">Deals</h1>
+                <p className="workspace-subtitle mt-2">Track opportunities and keep every deal moving forward.</p>
+              </div>
+              <Button color="primary" className="min-h-11 rounded-xl px-5 font-semibold" onPress={() => handleOpenModal("add")}>
+                Add deal
               </Button>
             </div>
             {actionError && !isOpen && (
@@ -257,8 +262,9 @@ export default function DealsPage() {
               Unable to load deals. Please try again.
             </p>
           ) : (
-            initDealsData && (
-              <Table aria-label="Deals Table">
+            initDealsData && (initDealsData.formatedDealsData.length ? (
+              <div className="overflow-x-auto rounded-2xl">
+              <Table aria-label="Deals" className="min-w-[680px]">
                 <TableHeader columns={columns}>
                   {(column) => (
                     <TableColumn key={column.key} className="text-center">
@@ -301,8 +307,8 @@ export default function DealsPage() {
                               )}
                             </div>
                           ) : column.key === "amount" ? (
-                            `$${item.amount}`
-                          ) : column.label === "status" ? (
+                            new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(item.amount))
+                          ) : column.key === "status" ? (
                             <span
                               className={`px-3 py-1 rounded-full text-xs font-semibold ${
                                 item.status === "pending"
@@ -323,7 +329,15 @@ export default function DealsPage() {
                   )}
                 </TableBody>
               </Table>
-            )
+              </div>
+            ) : (
+              <div className="workspace-panel flex min-h-80 flex-col items-center justify-center px-6 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-50 text-indigo-600"><FiTarget size={26} aria-hidden="true" /></div>
+                <h2 className="mt-5 text-xl font-bold text-slate-900">Create your first deal</h2>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">Add an opportunity, set its value and owner, and track it through your pipeline.</p>
+                <Button color="primary" endContent={<FiArrowRight aria-hidden="true" />} className="mt-6 rounded-xl px-5 font-semibold" onPress={() => handleOpenModal("add")}>Add a deal</Button>
+              </div>
+            ))
           )}
         </>
       ) : (

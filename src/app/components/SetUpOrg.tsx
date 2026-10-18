@@ -38,8 +38,6 @@ export default function SetUpOrg() {
 
     const generatedCode = generateUniqueName(organizationName);
 
-    console.log("generated code: ", generatedCode);
-
     try {
       await axiosInstance.post("/organization/create-org", {
         email: session?.user?.email,
@@ -50,8 +48,6 @@ export default function SetUpOrg() {
       setSuccessMessage("Organization created successfully!");
       setTimeout(() => {
         setIsCreating(false);
-        console.log("pathname: ", pathname);
-
         //re run swrs'
         const dashboardKey = `fetch-dashboard-data::${session?.user?.email}::${selectedOrg}`;
         mutate(dashboardKey);
@@ -64,6 +60,7 @@ export default function SetUpOrg() {
       }, 1000);
     } catch {
       setErrorMessage("Something went wrong while creating the organization.");
+      setIsCreating(false);
     }
   };
 
@@ -84,36 +81,37 @@ export default function SetUpOrg() {
         },
       );
 
-      if (response) {
-        console.log("created Response: ", response);
-      }
-      setSuccessMessage("Successfully request to join to the organization!");
+      if (response) setSuccessMessage("Your request to join has been sent.");
       setTimeout(() => {
         setIsJoining(false);
         //router.push("/dashboard"); // Redirect to dashboard after success
       }, 1000);
     } catch {
       setErrorMessage("Failed to request to join to the organization.");
+      setIsJoining(false);
     }
   };
 
   return (
-    <div className="container mx-auto max-w-[80%] p-6">
-      <h2 className="text-3xl font-semibold mb-6">
-        Create or Join Organization
-      </h2>
+    <div className="mx-auto w-full max-w-5xl">
+      <header className="mb-8">
+        <p className="workspace-kicker mb-2">Get started</p>
+        <h1 className="workspace-heading">Choose your workspace</h1>
+        <p className="workspace-subtitle mt-2">Create an organization for your team or join one with an invite code.</p>
+      </header>
 
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div>
         {/* Display success or error message */}
         {errorMessage && <Alert color="danger">{errorMessage}</Alert>}
         {successMessage && <Alert color="success">{successMessage}</Alert>}
 
-        <div className="flex flex-col gap-6 mb-6">
+        <div className="grid gap-5 md:grid-cols-2">
           {/* Option 1: Create a New Organization */}
-          <div className="w-full">
-            <h4 className="text-lg font-semibold mb-3">
-              Create a New Organization
-            </h4>
+          <div className="workspace-panel p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-slate-900">
+              Create an organization
+            </h2>
+            <p className="mb-6 mt-2 text-sm text-slate-500">Set up a new space for your team&apos;s leads and deals.</p>
             <Form>
               <Input
                 label="Organization Name"
@@ -122,12 +120,13 @@ export default function SetUpOrg() {
                 placeholder="Enter organization name"
               />
               <Button
-                className="mt-4"
+                className="mt-4 rounded-xl font-semibold"
                 color="primary"
                 size="lg"
                 variant="solid"
                 onPress={handleCreateOrganization}
-                disabled={isCreating}
+                isDisabled={isCreating}
+                isLoading={isCreating}
               >
                 {isCreating ? "Creating..." : "Create Organization"}
               </Button>
@@ -135,10 +134,9 @@ export default function SetUpOrg() {
           </div>
 
           {/* Option 2: Join an Existing Organization */}
-          <div className="w-full">
-            <h4 className="text-lg font-semibold mb-3">
-              Join an Existing Organization
-            </h4>
+          <div className="workspace-panel p-6 sm:p-8">
+            <h2 className="text-xl font-bold text-slate-900">Join an organization</h2>
+            <p className="mb-6 mt-2 text-sm text-slate-500">Use the invite code shared by your team.</p>
             <Form>
               <Input
                 label="Organization Code"
@@ -147,12 +145,13 @@ export default function SetUpOrg() {
                 placeholder="Enter organization code"
               />
               <Button
-                className="mt-4"
+                className="mt-4 rounded-xl font-semibold"
                 color="primary"
                 size="lg"
                 variant="solid"
                 onPress={handleJoinRequestToOrganization}
-                disabled={isCreating}
+                isDisabled={isJoining}
+                isLoading={isJoining}
               >
                 {isJoining ? "Joining..." : "Join Organization"}
               </Button>

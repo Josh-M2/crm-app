@@ -6,8 +6,8 @@ import Sidebar from "@/app/components/Sidebar";
 import { usePathname } from "next/navigation";
 import { FiMenu, FiX } from "react-icons/fi";
 
-const expandedWidth = "16rem";
-const collapsedWidth = "5rem";
+const expandedWidth = "17rem";
+const collapsedWidth = "5.5rem";
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -18,17 +18,27 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
     setIsMobileOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    setIsCollapsed(localStorage.getItem("leadnest-sidebar-collapsed") === "true");
+  }, []);
+
+  const toggleDesktopSidebar = () => {
+    const next = !isCollapsed;
+    setIsCollapsed(next);
+    localStorage.setItem("leadnest-sidebar-collapsed", String(next));
+  };
+
   const mainStyle = {
     "--sidebar-offset": isCollapsed ? collapsedWidth : expandedWidth,
   } as CSSProperties;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#f6f8fc]">
       <button
         type="button"
         aria-label={isMobileOpen ? "Close navigation" : "Open navigation"}
         aria-expanded={isMobileOpen}
-        className="fixed left-4 top-4 z-40 rounded-lg border border-gray-200 bg-white p-3 text-gray-900 shadow md:hidden"
+        className="fixed left-4 top-4 z-40 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-lg md:hidden"
         onClick={() => setIsMobileOpen((open) => !open)}
       >
         {isMobileOpen ? <FiX size={20} /> : <FiMenu size={20} />}
@@ -42,7 +52,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
             className="fixed inset-0 z-40 bg-black/40 md:hidden"
             onClick={() => setIsMobileOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-64 shadow-xl md:hidden">
+          <div className="fixed inset-y-0 left-0 z-50 w-[17rem] shadow-xl md:hidden">
             <Sidebar
               isCollapsed={false}
               isPinnedOpen
@@ -54,23 +64,23 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       )}
 
       <motion.div
-        className="fixed left-0 top-0 z-30 hidden h-screen overflow-hidden border-r border-gray-200 bg-white text-gray-900 shadow-sm md:block"
-        initial={{ x: -256 }}
-        animate={{ x: 0, width: isCollapsed ? collapsedWidth : expandedWidth }}
+        className="fixed left-0 top-0 z-30 hidden h-screen overflow-hidden border-r border-slate-200 bg-white text-slate-900 md:block"
+        initial={false}
+        animate={{ width: isCollapsed ? collapsedWidth : expandedWidth }}
         transition={{ duration: 0.2, ease: "easeOut" }}
       >
         <Sidebar
           isCollapsed={isCollapsed}
           isPinnedOpen={!isCollapsed}
-          toggleSideBar={() => setIsCollapsed((prev) => !prev)}
+          toggleSideBar={toggleDesktopSidebar}
         />
       </motion.div>
 
       <main
-        className="flex min-h-screen flex-col overflow-x-hidden px-4 pb-8 pt-20 transition-[margin-left] duration-200 ease-out md:ml-[var(--sidebar-offset)] md:p-8"
+        className="min-h-screen overflow-x-hidden px-4 pb-10 pt-20 transition-[margin-left] duration-200 ease-out sm:px-6 md:ml-[var(--sidebar-offset)] md:px-8 md:pt-10 lg:px-10"
         style={mainStyle}
       >
-        {children}
+        <div className="mx-auto w-full max-w-[1440px]">{children}</div>
       </main>
     </div>
   );

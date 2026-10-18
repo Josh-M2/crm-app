@@ -11,11 +11,8 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  Select,
-  SelectItem,
 } from "@heroui/react";
 import Link from "next/link";
-import UserAvatar from "@/app/components/UserAvatar";
 import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
@@ -29,10 +26,10 @@ import {
   FiBell,
   FiChevronLeft,
   FiChevronRight,
+  FiLogOut,
   FiGrid,
   FiLock,
   FiMessageSquare,
-  FiPlus,
   FiSettings,
   FiTarget,
   FiUser,
@@ -56,13 +53,6 @@ const navItems = [
 ];
 
 const createOrganizationKey = "__create_organization__";
-
-type OrganizationSelectItem = {
-  key: string;
-  name: string;
-  role?: string;
-  isCreateAction?: boolean;
-};
 
 type NotificationItem = Omit<Notification, "createdAt"> & {
   createdAt: string;
@@ -288,34 +278,25 @@ export default function Sidebar({
     }
   };
 
-  const organizationSelectItems: OrganizationSelectItem[] = [
-    {
-      key: createOrganizationKey,
-      name: "Organization",
-      isCreateAction: true,
-    },
-    ...organizations.map((org) => ({
-      key: org.organization.id,
-      name: org.organization.name,
-      role: org.role,
-    })),
-  ];
-
   return (
-    <aside className="flex h-screen flex-col bg-white p-4">
+    <aside className="flex h-screen flex-col bg-white px-3 pb-4 pt-5 sm:px-4">
       <div
-        className={`mb-8 flex items-center ${
+        className={`mb-7 flex items-center ${
           isCollapsed ? "justify-center" : "justify-between"
         }`}
       >
         {!isCollapsed && (
-          <h1 className="text-2xl font-bold text-black">LeadNest</h1>
+          <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 px-1" aria-label="LeadNest dashboard">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-sky-500 text-sm font-black text-white shadow-md shadow-indigo-200">L</span>
+            <span className="truncate text-lg font-bold tracking-tight text-slate-900">LeadNest</span>
+          </Link>
         )}
         <button
+          type="button"
           aria-label={toggleLabel ?? (isPinnedOpen ? "Collapse sidebar" : "Expand sidebar")}
           title={toggleLabel ?? (isPinnedOpen ? "Collapse sidebar" : "Expand sidebar")}
           aria-expanded={isPinnedOpen}
-          className="rounded p-2 text-black hover:bg-gray-300"
+          className="rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
           onClick={toggleSideBar}
         >
           {isPinnedOpen ? (
@@ -327,36 +308,26 @@ export default function Sidebar({
       </div>
 
       {!isCollapsed && (
-        <div className="mb-4">
-          <Select<OrganizationSelectItem>
+        <div className="mb-7 rounded-2xl border border-slate-200 bg-slate-50/80 p-3">
+          <label htmlFor="sidebar-organization" className="mb-2 block text-[11px] font-bold uppercase tracking-[0.15em] text-slate-500">Organization</label>
+          <select
             id="sidebar-organization"
             disabled={isLoading}
-            className="max-w-xs"
-            items={organizationSelectItems}
-            selectedKeys={selectedOrg ? [selectedOrg] : []}
+            value={selectedOrg || ""}
             onChange={handleOrgChange}
-            label="Organization"
-            classNames={{
-              trigger: "text-black",
-            }}
+            className="w-full min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 shadow-sm focus:border-indigo-500 focus:outline-none disabled:opacity-60"
           >
-            {(item) => (
-              <SelectItem
-                key={item.key}
-                textValue={item.name}
-                startContent={item.isCreateAction ? <FiPlus size={18} /> : null}
-                isReadOnly={!item.isCreateAction && item.key === selectedOrg}
-              >
-                {item.isCreateAction
-                  ? item.name
-                  : `${item.name} (${item.role})`}
-              </SelectItem>
-            )}
-          </Select>
+            {!selectedOrg && <option value="">Select an organization</option>}
+            {organizations.map((org) => (
+              <option key={org.organization.id} value={org.organization.id}>{org.organization.name}</option>
+            ))}
+            <option value={createOrganizationKey}>+ Create or join organization</option>
+          </select>
         </div>
       )}
-      <nav className="flex flex-col justify-between h-full ">
-        <div className="flex flex-col gap-2">
+      <nav aria-label="Workspace navigation" className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+          {!isCollapsed && <p className="px-3 pb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Workspace</p>}
           {navItems.map((item) => {
             const Icon = item.icon;
 
@@ -366,18 +337,20 @@ export default function Sidebar({
                 href={item.href}
                 title={item.label}
                 aria-label={isCollapsed ? item.label : undefined}
-                className={`flex items-center rounded py-3 text-gray-700 transition hover:bg-gray-300 hover:text-black ${
-                  isCollapsed ? "justify-center px-2" : "gap-3 px-2"
-                } ${isActiveRoute(item.href) ? "bg-gray-300" : ""}`}
+                aria-current={isActiveRoute(item.href) ? "page" : undefined}
+                className={`group flex min-h-11 items-center rounded-xl py-2.5 text-sm font-medium transition-colors ${
+                  isCollapsed ? "justify-center px-2" : "gap-3 px-3"
+                } ${isActiveRoute(item.href) ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"}`}
               >
-                <Icon size={20} />
+                <Icon size={19} className="shrink-0" />
                 {!isCollapsed && <span>{item.label}</span>}
+                {!isCollapsed && isActiveRoute(item.href) && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-indigo-600" />}
               </Link>
             );
           })}
         </div>
 
-        <div className={`mt-auto flex items-center ${isCollapsed ? "flex-col justify-center" : "gap-2"}`}>
+        <div className={`mt-4 flex shrink-0 items-center border-t border-slate-200 pt-4 ${isCollapsed ? "flex-col justify-center gap-1" : "gap-2"}`}>
           <Popover
             isOpen={isOpen}
             onOpenChange={(open) => setIsOpen(open)}
@@ -386,15 +359,20 @@ export default function Sidebar({
               <button
                 type="button"
                 aria-label="Account menu"
-                className={`cursor-pointer rounded p-2 text-black hover:bg-gray-300 ${isCollapsed ? "w-full" : "min-w-0 flex-1"}`}
+                className={`flex min-h-12 cursor-pointer items-center rounded-xl p-2 text-left text-slate-900 transition-colors hover:bg-slate-100 ${isCollapsed ? "w-full justify-center" : "min-w-0 flex-1"}`}
               >
                 {isCollapsed ? (
                   <FiUser className="mx-auto" size={20} />
                 ) : (
-                  <UserAvatar
-                    description="Member"
-                    name={session?.user?.name as string}
-                  />
+                  <span className="flex min-w-0 items-center gap-2.5">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">
+                      {(session?.user?.name ?? "M").split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase()}
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-semibold leading-5">{session?.user?.name ?? "Member"}</span>
+                      <span className="block text-xs text-slate-500">Account</span>
+                    </span>
+                  </span>
                 )}
               </button>
             </PopoverTrigger>
@@ -410,7 +388,7 @@ export default function Sidebar({
                 >
                   Change password
                 </Button>
-                <Button color="danger" onPress={handleLogout}>
+                <Button color="danger" variant="light" startContent={<FiLogOut size={16} />} onPress={handleLogout}>
                   Logout
                 </Button>
               </div>
@@ -426,7 +404,7 @@ export default function Sidebar({
                 <button
                   aria-label="Notifications"
                   title="Notifications"
-                  className="relative rounded p-2 text-gray-700 hover:bg-gray-300 hover:text-black"
+                  className="relative shrink-0 rounded-xl p-2.5 text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900"
                 >
                   <FiBell size={20} />
                   {hasUnreadNotifications && (

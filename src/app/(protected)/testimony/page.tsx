@@ -23,28 +23,28 @@ export default function TestimonyPage() {
     setStatusMessage("");
     setErrorMessage("");
 
-    const response = await fetch("/api/testimonials", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        message,
-        rating,
-      }),
-    });
+    try {
+      const response = await fetch("/api/testimonials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, message, rating }),
+      });
+      const data = await response.json();
 
-    const data = await response.json();
-    setIsSubmitting(false);
+      if (!response.ok) {
+        setErrorMessage(data.error || "Unable to submit your story.");
+        return;
+      }
 
-    if (!response.ok) {
-      setErrorMessage(data.error || "Unable to submit your story.");
-      return;
+      setTitle("");
+      setMessage("");
+      setRating(5);
+      setStatusMessage("Your story has been published.");
+    } catch {
+      setErrorMessage("Unable to submit your story. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setTitle("");
-    setMessage("");
-    setRating(5);
-    setStatusMessage("Your story has been published.");
   }
 
   return (
@@ -54,15 +54,16 @@ export default function TestimonyPage() {
       ) : selectedOrg ? (
         <div className="mx-auto w-full max-w-3xl">
           <div className="mb-8">
-            <h2 className="mb-2 text-3xl font-bold text-gray-950">
+            <p className="workspace-kicker mb-2">Community / Your story</p>
+            <h1 className="workspace-heading">
               Share your LeadNest story
-            </h2>
-            <p className="text-gray-600">
+            </h1>
+            <p className="workspace-subtitle mt-2">
               Tell other teams how LeadNest helps with your customer work.
             </p>
           </div>
 
-          <Card className="rounded-lg border border-gray-200 bg-white p-6 shadow">
+          <Card className="workspace-panel p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <Input
                 isRequired
@@ -99,6 +100,7 @@ export default function TestimonyPage() {
                         type="button"
                         onClick={() => setRating(starValue)}
                         aria-label={`${starValue} star${starValue > 1 ? "s" : ""}`}
+                        aria-pressed={active}
                         className="rounded p-1 transition-transform hover:scale-110 focus:ring-blue-500"
                       >
                         <span
@@ -116,15 +118,15 @@ export default function TestimonyPage() {
               </div>
 
               {errorMessage && (
-                <p className="text-sm text-red-600">{errorMessage}</p>
+                <p role="alert" className="text-sm text-red-600">{errorMessage}</p>
               )}
 
               {statusMessage && (
-                <p className="text-sm text-green-600">{statusMessage}</p>
+                <p role="status" className="text-sm text-green-700">{statusMessage}</p>
               )}
 
               <div className="flex justify-end">
-                <Button color="primary" isLoading={isSubmitting} type="submit">
+                <Button color="primary" className="rounded-xl px-5 font-semibold" isLoading={isSubmitting} type="submit">
                   Submit story
                 </Button>
               </div>
