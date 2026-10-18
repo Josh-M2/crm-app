@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This project is a multi-tenant CRM SaaS built with Next.js App Router. Users can sign up, log in, create or join organizations, and manage organization-scoped lead lists, leads, deals, dashboard metrics, analytics, settings, join requests, roles, and activity history.
+This project is a multi-tenant CRM SaaS built with Next.js App Router. Users can sign up, log in, create or join organizations, and manage organization-scoped lead lists, leads, deals, dashboard metrics, analytics, settings, join requests, roles, and activity history. The app also supports password recovery, join-request notifications, and public customer stories submitted by signed-in users.
 
 The most important application rule is:
 
@@ -34,10 +34,14 @@ That means leads, lead lists, deals, dashboard totals, analytics, organization u
 npm run dev
 npm run build
 npm run start
-npm run db:seed
+npm run lint
 npm run test:unit
 npm run test:e2e
 ```
+
+For a new database, run `npx prisma migrate deploy` and `npx prisma generate`.
+Check an existing database with `npx prisma migrate status` before applying
+migrations. There is no seed script or bundled demo account.
 
 On Windows, direct local binaries can be run with:
 
@@ -78,7 +82,7 @@ report that delivery is unavailable. `.env` is ignored by Git.
 ```txt
 prisma/
   schema.prisma
-  seed.cjs
+  migrations/
 
 src/
   app/
@@ -110,6 +114,7 @@ docs/
 ```txt
 src/app/(Landing)/page.tsx
 src/app/(Landing)/contact/page.tsx
+src/app/stories/page.tsx
 ```
 
 These routes are public marketing/landing pages. They use the shared landing components in:
@@ -121,6 +126,7 @@ src/app/components/landing/
 The pricing and integrations sections show current availability rather than
 unimplemented paid plans or vendor connections. `/contact` sends a validated
 message through `POST /api/contact` and shows success or failure in the form.
+`/stories` lists published testimonials; the landing page shows the three newest.
 The public header shows full navigation at desktop width and an expandable menu
 on phone and tablet widths. The menu closes after navigation, on Escape, or
 when clicked outside. The integrations section fits narrow phone screens.
@@ -146,11 +152,15 @@ src/app/(protected)/analytics/page.tsx
 src/app/(protected)/leads/page.tsx
 src/app/(protected)/leads/[categorized_lead_id]/page.tsx
 src/app/(protected)/deals/page.tsx
+src/app/(protected)/organization/page.tsx
 src/app/(protected)/settings/page.tsx
 src/app/(protected)/settings/manage-users/page.tsx
+src/app/(protected)/testimony/page.tsx
 ```
 
-These routes are protected by middleware. Users without a valid token are redirected to `/login`.
+Middleware redirects unauthenticated users from the listed CRM routes except
+`/organization`, which is currently outside the middleware matcher. Its page
+uses the protected client layout and its create/join APIs require a session.
 
 ## Middleware
 
@@ -281,6 +291,10 @@ src/app/api/auth/reset-password/route.ts
 
 `reset-password` validates reset tokens with `GET` and updates the user password with `POST`. Reset links expire after 30 minutes and are invalidated after a successful password update.
 
+`POST /api/auth/change-password` requires a signed-in user and the current
+password. It accepts a new password of at least 12 characters and is exposed
+from the workspace sidebar.
+
 ### Contact API
 
 ```txt
@@ -362,6 +376,7 @@ GET  /api/auth/check-token
 POST /api/auth/forgot-password
 GET  /api/auth/reset-password
 POST /api/auth/reset-password
+POST /api/auth/change-password
 *    /api/auth/[...nextauth]
 ```
 
@@ -409,6 +424,36 @@ POST /api/organization/join-org/delete-request
 `accept-request` requires `ADMIN`, marks an invite accepted, and creates or reuses an `OrganizationUser` membership with role `AGENT`.
 
 `delete-request` requires `ADMIN`, deletes the invite, and logs an activity saying the request was declined.
+
+Requests notify organization admins. Accepting or declining a request notifies
+the applicant; the notification records carry a destination and optional
+organization ID.
+
+### Notifications
+
+```txt
+GET   /api/notifications
+PATCH /api/notifications
+```
+
+Both methods require a signed-in user. `GET` returns that user's 20 newest
+notifications; `PATCH` marks one of that user's notifications as read. The
+sidebar refreshes notifications every 30 seconds, shows the newest eight, and
+switches organization context when a notification has an organization ID.
+
+### Testimonials
+
+```txt
+GET  /api/testimonials?limit=12
+POST /api/testimonials
+```
+
+`GET` is public and returns published testimonials newest first. `limit` is
+clamped to 1–50; the landing page requests three and `/stories` requests 50.
+`POST` requires a signed-in user, validates a title (1–120 characters), story
+(20–600 characters), and rating (1–5), then publishes the submission with the
+user's name or email. The `/testimony` form requires an organization selection
+in the UI; the API itself requires authentication but not organization membership.
 
 ### Dashboard
 
@@ -660,6 +705,18 @@ Admin protections live in API routes, not only the UI.
 The settings page shows the organization invite code and links admins to user
 management. Organization deletion is not exposed because there is no deletion API.
 
+### Organization and Stories
+
+```txt
+src/app/(protected)/organization/page.tsx
+src/app/(protected)/testimony/page.tsx
+src/app/stories/page.tsx
+```
+
+The organization page opens the create/join workspace flow. The testimony page
+lets a signed-in user with a selected organization publish a story. The public
+stories page and landing page read published testimonials from the same API.
+
 ## Shared Components
 
 ```txt
@@ -673,6 +730,8 @@ src/app/components/UserAvatar.tsx
 `SetUpOrg` lets a signed-in user create a new organization or request to join an existing organization by organization code.
 The desktop sidebar stores its collapsed preference in local storage. The
 dashboard, Leads, Deals, and Analytics pages provide actions when their data is empty.
+The sidebar also provides a mobile drawer, organization switcher, password
+change form, and notification list.
 
 Landing components:
 
@@ -742,9 +801,11 @@ src/app/types/auth.ts
 src/app/types/dashboard.ts
 src/app/types/analytics.ts
 src/app/types/deals.ts
+src/app/types/testimonials.ts
 ```
 
-These files define frontend/API data shapes for auth forms, dashboard data, analytics chart data, and deals.
+These files define frontend/API data shapes for auth forms, dashboard data,
+analytics chart data, deals, and public testimonials.
 
 ## Activity Logging
 
@@ -765,36 +826,13 @@ Activities are written for major CRM and admin actions, including:
 
 Deleted lead and deal activities do not keep foreign keys to deleted records. They preserve the name in the activity description instead.
 
-## Seed Data
+## Database Migrations
 
-Seed file:
-
-```txt
-prisma/seed.cjs
-```
-
-Command:
-
-```bash
-npm run db:seed
-```
-
-The seed creates a demo organization with users, lead lists, leads, deals, and activities.
-
-Demo login:
-
-```txt
-Email: admin@leadnest.test
-Password: Password123456
-Organization code: leadnest_demo
-```
-
-Seed behavior:
-
-- creates or updates demo users
-- creates or updates the demo organization
-- refreshes demo CRM data inside the demo organization
-- does not wipe unrelated organizations
+`prisma/migrations/` contains the initial CRM schema and later migrations for
+testimonials, notifications, and password-reset fields. The repository ships no
+seed file or demo credentials. For a new database, apply committed migrations
+with `npx prisma migrate deploy`, generate the client with
+`npx prisma generate`, then sign up and create or join an organization.
 
 ## Testing
 
@@ -875,6 +913,8 @@ Playwright runs the dev server on port `3100`.
 - The desktop sidebar stays collapsed after its toggle is clicked. On small
   screens, navigation opens in a drawer. Organization selection is restored
   after hydration and falls back to a membership the user still has.
+- `/organization` currently relies on client layout and API authentication;
+  it is not included in the middleware's protected route matcher.
 
 ## Future Work
 
