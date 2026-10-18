@@ -168,6 +168,7 @@ Implemented:
 - individual leads
 - deals
 - collapsible desktop navigation and mobile navigation drawer
+- responsive public navigation that collapses below desktop width, with a mobile menu
 - saved desktop sidebar preference, clear empty states, and workspace quick actions
 - dashboard
 - analytics

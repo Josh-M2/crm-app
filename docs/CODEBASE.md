@@ -121,6 +121,9 @@ src/app/components/landing/
 The pricing and integrations sections show current availability rather than
 unimplemented paid plans or vendor connections. `/contact` sends a validated
 message through `POST /api/contact` and shows success or failure in the form.
+The public header shows full navigation at desktop width and an expandable menu
+on phone and tablet widths. The menu closes after navigation, on Escape, or
+when clicked outside. The integrations section fits narrow phone screens.
 
 ### Auth Routes
 
@@ -855,6 +858,9 @@ Current e2e coverage:
 - login page renders
 - reset password page renders
 - reset password page shows a missing token error before calling the confirmation API
+- public navigation collapses at 320px, 390px, and 768px, opens and closes by
+  interaction, and avoids horizontal overflow
+- public desktop navigation keeps its full height and visible calls to action
 
 Playwright runs the dev server on port `3100`.
 
